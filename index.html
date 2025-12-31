@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Columbia Economics Society</title>
+
+  <!-- CFIG-ish thin, modern font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* =========================
+     GLOBAL RESET + BASE
+     ========================= */
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    font-family: Montserrat, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color:#0b1220;
+    background:#ffffff;
+  }
+
+  /* Global anchors (match Alumni system) */
+  a{
+    color: inherit;
+    text-decoration: none;
+    transition: opacity 220ms ease, color 220ms ease, border-color 220ms ease, background-color 220ms ease;
+  }
+  a:hover{ opacity: .82; }
+
+  /* =========================
+     KNOBS
+     ========================= */
+  :root{
+    /* NAVBAR */
+    --nav-solid-bg: rgba(219, 242, 255, 0.96);
+    --nav-solid-border: rgba(16, 24, 40, 0.12);
+    --nav-solid-text: rgba(0, 0, 0, 0.9);
+
+    --nav-hero-text: rgba(255,255,255,.92);
+    --nav-hero-border: rgba(255,255,255,.12);
+    --nav-transition-ms: 420ms;
+    --nav-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* HERO (slideshow) */
+    --hero-h: 75vh;
+    --hero-min-h: 20vh;
+
+    --hero-blur: 7px;
+    --hero-blur-hover: 4px;
+    --hero-scale: 1.04;
+    --hero-scale-hover: 1.085;
+
+    --hero-dim-top: 0.00;
+    --hero-dim-bottom: 0.00;
+
+    --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --hero-fade-ms: 1200ms;
+    --hero-hover-ms: 1000ms;
+    --hero-interval-ms: 5200ms;
+
+    /* LAYOUT */
+    --container: 1180px;
+    --padX: 28px;
+
+    --radius: 0px;
+    --line: rgba(16,24,40,.12);
+
+    --muted: rgba(16,24,40,.72);
+    --muted2: rgba(16,24,40,.60);
+
+    /* IMAGE GRID HOVER */
+    --grid-scale: 1.065;
+    --grid-hover-ms: 420ms;
+
+    /* NEWSLETTER BAND */
+    --band-blur: 4px;
+    --band-blur-hover: 2px;
+    --band-scale: 1.06;
+    --band-scale-hover: 1.08;
+
+    --band-dim-top: 0.00;
+    --band-dim-bottom: 0.00;
+  }
+
+  /* =========================
+     TOP NAV
+     ========================= */
+  .topbar{
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    background: transparent;
+    border-bottom: 0px solid transparent;
+    transition:
+      background-color var(--nav-transition-ms) var(--nav-transition-ease),
+      border-color     var(--nav-transition-ms) var(--nav-transition-ease),
+      box-shadow       var(--nav-transition-ms) var(--nav-transition-ease);
+  }
+
+  .topbar-inner{
+    width: 100%;
+    padding: 14px var(--padX);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+  }
+
+  /* floating logo, not affecting navbar height */
+  .brand-float{
+    position: absolute;
+    left: var(--padX);
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    z-index: 60;
+  }
+  .brand-float img{
+    width: 54px;
+    height: 58px;
+    object-fit: contain;
+    display:block;
+  }
+
+  .nav{
+    margin-left: auto;
+    display:flex;
+    align-items:center;
+    gap: 18px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--nav-hero-text);
+  }
+  .nav a{
+    padding: 8px 8px;
+    font-weight: 500;
+    color: inherit;
+    opacity: .95;
+    transition: opacity 220ms ease;
+  }
+  .nav a:hover{ opacity: .85; }
+
+  /* =========================
+     ABOUT DROPDOWN
+     ========================= */
+  .drop{
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .drop > button{
+    appearance: none;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: inherit;
+    padding: 14px 8px;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 101;
+  }
+
+  .caret{
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid currentColor;
+    opacity: .75;
+    transform: translateY(1px) rotate(0deg);
+    transition: transform 220ms ease;
+  }
+  .drop:hover .caret,
+  .drop:focus-within .caret{
+    transform: translateY(1px) rotate(180deg);
+  }
+
+  .menu{
+    position: absolute;
+    left: -5px;
+    right: 0px;
+    top: calc(100% + 13px);
+
+    min-width: 100%;
+    width: 104%;
+
+    background: rgba(16,24,40,.92);
+    border: 0px solid rgba(255,255,255,.10);
+    padding: 0px;
+    z-index: 100;
+
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 220ms ease, transform 220ms ease;
+    text-align: center;
+  }
+
+  .drop:hover .menu,
+  .drop:focus-within .menu{
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /* hover bridge */
+  .drop::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    top: 100%;
+    height: 14px;
+  }
+
+  .menu a{
+    display:block;
+    padding: 15px 0px;
+    color: rgba(255,255,255,.92);
+    font-weight: 600;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    font-size: 12px;
+    text-align: center;
+    opacity: 1; /* don’t dim menu items */
+  }
+  .menu a:hover{
+    background: rgba(255,255,255,.08);
+    opacity: 1;
+  }
+
+  /* =========================
+     RECRUITMENT BUTTON
+     ========================= */
+  .recruit{
+    margin-left: 8px;
+    padding: 12px 18px !important;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    background: transparent;
+    color: rgba(255,255,255,.95) !important;
+    font-weight: 600 !important;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease,
+      transform 220ms ease,
+      opacity 220ms ease;
+  }
+  .recruit:hover{
+    background-color: rgba(255,255,255,.10);
+    opacity: 1;
+  }
+  .recruit:active{
+    transform: translateY(0px);
+  }
+
+  /* =========================
+     SOLID NAV (after scroll)
+     ========================= */
+  .topbar.is-solid{
+    background: rgb(228, 244, 255);
+    border-bottom: 0px solid var(--nav-solid-border);
+    box-shadow: 0 6px 22px rgba(16,24,40,.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .topbar.is-solid .nav{ color: var(--nav-solid-text); }
+  .topbar.is-solid .recruit{
+    border-color: rgba(0,0,0,0.856);
+    color: rgba(16,24,40,.92) !important;
+    background: transparent;
+  }
+  .topbar.is-solid .recruit:hover{
+    background: rgba(16,24,40,.06);
+  }
+
+  /* =========================
+     HERO (slideshow)
+     ========================= */
+  .hero{
+    position: relative;
+    height: var(--hero-h);
+    min-height: var(--hero-min-h);
+    overflow: hidden;
+    background: #0b1220;
+    padding-top: 70px;
+  }
+
+  .hero-bg{
+    position:absolute;
+    inset:0;
+    background-size: cover;
+    background-position: center;
+    transform: scale(var(--hero-scale));
+    filter: blur(var(--hero-blur));
+    opacity: 0;
+    transition:
+      opacity var(--hero-fade-ms) var(--hero-ease),
+      filter var(--hero-hover-ms) var(--hero-ease),
+      transform var(--hero-hover-ms) var(--hero-ease);
+    will-change: opacity, transform, filter;
+  }
+
+  .hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,var(--hero-dim-top)),
+      rgba(0,0,0,var(--hero-dim-bottom))
+    );
+    z-index:2;
+  }
+
+  .hero:hover .hero-bg{
+    filter: blur(var(--hero-blur-hover));
+    transform: scale(var(--hero-scale-hover));
+  }
+
+  .hero-inner{
+    position: relative;
+    z-index: 3;
+    height: 100%;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding: 0 var(--padX) 80px;
+    text-align:center;
+  }
+
+  /* Fix: clamp was inverted before (min > max). */
+  .hero h1{
+    font-size: clamp(64px, 5.2vw, 86px);
+    letter-spacing: -0.03em;
+    color: rgba(255,255,255,.95);
+    font-weight: 600;
+    line-height: 1.05;
+    max-width: 2000px;
+    margin: 10px auto;
+  }
+
+  .hero p{
+    margin: 16px auto 0;
+    max-width: 920px;
+    color: rgba(255,255,255,.82);
+    font-size: 14px;
+    line-height: 1.85;
+    font-weight: 400;
+  }
+
+  .hero-socials{
+    position:absolute;
+    left: var(--padX);
+    right: var(--padX);
+    bottom: 18px;
+    z-index: 4;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: 14px;
+    color: rgba(255,255,255,.86);
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .hero-socials .left{ opacity: .92; }
+  .hero-socials .right{
+    display:flex;
+    gap: 16px;
+    align-items:center;
+    justify-content:flex-end;
+  }
+  .hero-socials a{
+    color: rgba(255,255,255,.88);
+    border-bottom: 1px solid rgba(255,255,255,.22);
+    padding-bottom: 2px;
+    opacity: .95;
+  }
+  .hero-socials a:hover{ opacity: .82; }
+
+  /* =========================
+     MAIN SECTIONS
+     ========================= */
+  .section{
+    padding: 74px var(--padX);
+    background:#fff;
+  }
+  .wrap{
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+
+  .about{
+    text-align:center;
+    padding-top: 24px;
+  }
+  .about h2{
+    margin: 0;
+    font-size: 54px;
+    letter-spacing: -0.03em;
+    font-weight: 600;
+  }
+  .about p{
+    margin: 16px auto 0;
+    max-width: 1220px;
+    color: var(--muted);
+    line-height: 1.95;
+    font-size: 20px;
+    font-weight: 400;
+  }
+
+  /* =========================
+     2x3 IMAGE GRID
+     ========================= */
+  .grid-wide{
+    width: 100%;
+    max-width: none;
+    margin: 46px auto 0;
+    padding: 0;
+  }
+
+  .image-grid{
+    width: 100%;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .img-tile{
+    position: relative;
+    overflow: hidden;
+    border: 2px solid rgb(228, 244, 255);
+    background: #d9d9d9;
+    aspect-ratio: 16 / 9;
+    display: block;
+  }
+
+  .img-tile::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image: var(--img);
+    background-size: cover;
+    background-position: center;
+    transform: scale(1.04);
+    transition: transform var(--grid-hover-ms) ease;
+    will-change: transform;
+  }
+
+  .img-tile:hover::before{
+    transform: scale(var(--grid-scale));
+  }
+
+  .img-tag{
+    position:absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 2;
+    padding: 8px 10px;
+    border: 2px solid rgba(255,255,255,.22);
+    background: rgba(0,0,0,.34);
+    color: rgba(255,255,255,.92);
+    font-size: 11px;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .grid-ctas{
+    margin-top: 36px;
+    display: flex;
+    gap: 204px;
+    justify-content: center;
+  }
+
+  .cta-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 22px;
+    min-width: 140px;
+
+    border: 2px solid rgb(0,0,0);
+    color: rgba(16,24,40,.92);
+    background: transparent;
+
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-size: 12px;
+
+    transition: background-color 220ms ease, transform 220ms ease, opacity 220ms ease;
+  }
+  .cta-btn:hover{
+    background: rgba(16,24,40,.06);
+    transform: translateY(0px);
+    opacity: 1;
+  }
+
+  /* =========================
+     NEWSLETTER BAND
+     ========================= */
+  .band{ padding: 0; }
+
+  .band-inner{
+    position: relative;
+    height: 250px;
+    overflow:hidden;
+    border-top: 0px solid var(--line);
+    border-bottom: 0px solid var(--line);
+  }
+
+  .band-bg{
+    position:absolute;
+    inset:0;
+    background-size: cover;
+    background-position: center;
+    transform: scale(var(--band-scale));
+    filter: blur(var(--band-blur));
+    transition:
+      filter 700ms var(--hero-ease),
+      transform 700ms var(--hero-ease);
+    will-change: transform, filter;
+  }
+
+  .band-inner:hover .band-bg{
+    filter: blur(var(--band-blur-hover));
+    transform: scale(var(--band-scale-hover));
+  }
+
+  .band-inner::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,var(--band-dim-top)),
+      rgba(0,0,0,var(--band-dim-bottom))
+    );
+    z-index:1;
+  }
+
+  .band-content{
+    position: relative;
+    z-index: 2;
+    max-width: var(--container);
+    margin: 0 auto;
+    height: 100%;
+    padding: 0 var(--padX);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 18px;
+  }
+
+  .band-left h3{
+    margin: 0 0 10px;
+    color: rgba(255,255,255,.95);
+    font-size: 34px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  .band-left p{
+    margin: 0;
+    color: rgba(255,255,255,.82);
+    font-size: 13px;
+    line-height: 1.8;
+    max-width: 640px;
+    font-weight: 400;
+  }
+
+  .band-btn{
+    flex: 0 0 auto;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding: 16px 26px;
+    border: 2px solid rgba(255,255,255,.78);
+    color: rgba(255,255,255,.94);
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-size: 12px;
+    background: transparent;
+    transition: background-color 220ms ease, opacity 220ms ease;
+  }
+  .band-btn:hover{
+    background: rgba(255,255,255,.10);
+    opacity: 1;
+  }
+
+  /* =========================
+     SPONSORS
+     ========================= */
+  .sponsors{
+    padding: 34px var(--padX) 10px;
+    background: #fff;
+  }
+
+  .sponsors h2{
+    margin: 0;
+    text-align: center;
+    font-size: 34px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    color: rgba(16,24,40,.92);
+  }
+
+  /* single centered card by default (matches your CES preference) */
+  .sponsor-grid{
+    margin-top: 34px;
+    padding-bottom: 64px;
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 14px;
+    justify-content: center;
+  }
+
+  .sponsor-card{
+    border: 0px solid rgba(255, 255, 255, 0.06);
+    background: rgb(255, 255, 255);
+    width: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    justify-self: center;
+  }
+
+  .sponsor-card img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* =========================
+     FOOTER
+     ========================= */
+  .footer{
+    padding: 64px var(--padX);
+    background: #fff;
+  }
+
+  .footer-inner{
+    max-width: 1800px;
+    margin: 0 auto;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 24px;
+  }
+
+  .footer-left h4,
+  .footer-right h4{
+    margin: 0 0 18px;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  .footer-left .line{
+    margin: 10px 0;
+    color: rgba(16,24,40,.78);
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .footer-left a{
+    border-bottom: 1px solid rgba(16,24,40,.22);
+    padding-bottom: 2px;
+  }
+  .footer-left a:hover{ border-color: rgba(16,24,40,.12); opacity: .82; }
+
+  .footer-right{ text-align: right; }
+
+  .footer-links{
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items:flex-end;
+  }
+
+  .footer-links a{
+    color: rgba(16,24,40,.78);
+    font-size: 14px;
+    font-weight: 400;
+    border-bottom: 1px solid rgba(16,24,40,.22);
+    padding-bottom: 2px;
+  }
+  .footer-links a:hover{ border-color: rgba(16,24,40,.12); opacity: .82; }
+
+  /* =========================
+     PAGE LOAD ANIMATIONS
+     ========================= */
+  body.preload .hero-bg{ opacity: 0 !important; }
+  body.preload .hero-inner > div{ opacity: 0; transform: translateY(18px); }
+  body.preload .hero-socials{ opacity: 0; transform: translateY(10px); }
+
+  body.is-loaded .hero-inner > div{
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 900ms var(--hero-ease), transform 900ms var(--hero-ease);
+    transition-delay: 140ms;
+  }
+  body.is-loaded .hero-socials{
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 900ms var(--hero-ease), transform 900ms var(--hero-ease);
+    transition-delay: 260ms;
+  }
+
+  /* =========================
+     SCROLL REVEAL
+     ========================= */
+  .reveal{
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 700ms var(--hero-ease), transform 700ms var(--hero-ease);
+  }
+  .reveal.in{
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* =========================
+     RESPONSIVE
+     ========================= */
+  @media (max-width: 980px){
+    .nav{ gap: 10px; font-size: 12px; }
+    .recruit{ padding: 10px 14px !important; }
+    .hero{ min-height: 560px; }
+
+    .about h2{ font-size: 36px; }
+    .image-grid{ grid-template-columns: 1fr; }
+
+    .grid-ctas{
+      gap: 18px;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .band-content{
+      flex-direction: column;
+      align-items:flex-start;
+      justify-content:center;
+    }
+    .band-left h3{ font-size: 28px; }
+
+    .hero-socials{
+      flex-direction: column;
+      align-items:flex-start;
+    }
+    .hero-socials .right{ justify-content:flex-start; }
+
+    .footer-inner{ flex-direction: column; }
+    .footer-right{ text-align:left; }
+    .footer-links{ align-items:flex-start; }
+  }
+</style>
+</head>
+
+<body class="preload">
+  <!-- NAV -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-inner">
+      <!-- Home logo (keep relative to homepage) -->
+      <a class="brand brand-float" href="./index.html" aria-label="Home">
+        <img src="./media/ceslogo.png" alt="Columbia Economics Society logo">
+      </a>
+
+      <nav class="nav" aria-label="Primary">
+        <div class="drop" id="aboutDrop">
+          <button type="button" id="aboutBtn" aria-haspopup="true" aria-expanded="false">
+            ABOUT US <span class="caret" aria-hidden="true"></span>
+          </button>
+
+          <div class="menu" role="menu" aria-label="About menu">
+            <!-- Fix: anchors should exist on homepage -->
+            <a href="./about/index.html" role="menuitem">ABOUT</a>
+            <a href="./leadership/index.html" role="menuitem">LEADERSHIP</a>
+          </div>
+        </div>
+
+        <!-- Fix: point to actual pages instead of missing in-page anchors -->
+        <a href="./events/index.html">EVENTS</a>
+        <a href="./alumni/index.html">ALUMNI</a>
+        <a href="./faq/index.html">FAQ</a>
+        <a href="./contact/index.html">CONTACT</a>
+        <a class="recruit" href="./recruitment/index.html">RECRUITMENT</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-bg" id="bgA"></div>
+    <div class="hero-bg" id="bgB"></div>
+
+    <div class="hero-inner">
+      <div>
+        <h1>We build tomorrow's economic leaders.</h1>
+      </div>
+    </div>
+
+    <div class="hero-socials">
+      <div class="left">COLUMBIA ECONOMICS SOCIETY</div>
+      <div class="right">
+        <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">INSTAGRAM</a>
+        <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LINKEDIN</a>
+        <a href="mailto:econboard@columbia.edu" aria-label="Email">EMAIL</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section reveal" id="the-society">
+    <div class="wrap about">
+      <h2>We are the Columbia Economics Society</h2>
+      <p>
+        We host speakers, run practical workshops, and build a community for students who want
+        to understand the economy beyond headlines—grounded in theory, motivated by reality,
+        and trained to communicate clearly.
+      </p>
+
+      <!-- 2x3 IMAGE GRID -->
+      <div class="grid-wide">
+        <div class="image-grid" aria-label="Highlights">
+          <a class="img-tile" href="https://www.instagram.com/p/DRyHGoQkbQJ/?hl=en" target="_blank" rel="noopener noreferrer"
+             style="--img:url('./media/im1.png');">
+            <span class="img-tag">EVENTS</span>
+          </a>
+
+          <a class="img-tile" href="https://www.instagram.com/p/DP9sSbzkQpD/?hl=en" target="_blank" rel="noopener noreferrer"
+             style="--img:url('./media/im2.jpeg');">
+            <span class="img-tag">EVENTS</span>
+          </a>
+
+          <a class="img-tile" href="https://www.instagram.com/p/DGegCN7uf5h/?hl=en&img_index=1" target="_blank" rel="noopener noreferrer"
+             style="--img:url('./media/im3.png');">
+            <span class="img-tag">SUMMITS</span>
+          </a>
+
+          <!-- Fix: tiles without href should be <div>, not <a> -->
+          <div class="img-tile" style="--img:url('./media/im4.png');">
+            <span class="img-tag">EVENTS</span>
+          </div>
+
+          <div class="img-tile" style="--img:url('./media/im5.jpeg');">
+            <span class="img-tag">SOCIAL</span>
+          </div>
+
+          <div class="img-tile" style="--img:url('./media/im6.jpeg');">
+            <span class="img-tag">SOCIAL</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-ctas" aria-label="Grid calls to action">
+        <!-- Fix: #about didn’t exist -->
+        <a class="cta-btn" href="./about/index.html">LEARN MORE</a>
+        <a class="cta-btn" href="./recruitment/index.html">JOIN US</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPONSORS -->
+  <section class="sponsors reveal" aria-label="Sponsors">
+    <div class="wrap">
+      <h2>Supported by Our Sponsors:</h2>
+
+      <div class="sponsor-grid">
+        <div class="sponsor-card">
+          <img src="./misc/im1.png" alt="Jane Street">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEWSLETTER BAND -->
+  <section class="band reveal" id="newsletter">
+    <div class="band-inner">
+      <div class="band-bg" style="background-image:url('./horizontals/im3.jpg');"></div>
+      <div class="band-content">
+        <div class="band-left">
+          <h3>Subscribe to Our Email Newsletter</h3>
+          <p>
+            Learn about upcoming events, key economic moments, guest speakers, and opportunities
+            across campus—curated for CES.
+          </p>
+        </div>
+        <a class="band-btn" href="https://mailchi.mp/1e789f64bcb2/ces-newsletter-sign-up" target="_blank" rel="noopener noreferrer">
+          JOIN NOW
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer reveal" id="contact">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <h4>Columbia Economics Society</h4>
+        <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
+        <div class="line">70 Morningside Drive</div>
+        <div class="line">New York, NY 10027</div>
+      </div>
+
+      <div class="footer-right">
+        <h4>Follow Us</h4>
+        <div class="footer-links">
+          <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram" target="_blank" rel="noopener noreferrer">Instagram</a>
+          <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          <a href="https://linktr.ee/columbiaeconsociety?utm_source=ig&utm_medium=social&utm_content=link_in_bio" aria-label="Linktree" target="_blank" rel="noopener noreferrer">Linktree</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // =========================
+    // NAV: transparent on hero, solid after scroll
+    // =========================
+    const topbar = document.getElementById("topbar");
+    const heroEl = document.getElementById("hero");
+
+    function setNavState(){
+      const heroBottom = heroEl.getBoundingClientRect().bottom;
+      if(heroBottom <= 71) topbar.classList.add("is-solid");
+      else topbar.classList.remove("is-solid");
+    }
+    window.addEventListener("scroll", setNavState, { passive:true });
+    window.addEventListener("resize", setNavState);
+    setNavState();
+
+    // =========================
+    // HERO SLIDESHOW
+    // (fast first paint: reveal when FIRST image loads)
+    // =========================
+    const slides = [
+      "./horizontals/im1.jpg",
+      "./horizontals/im2.jpg",
+      "./horizontals/im3.jpg"
+    ];
+
+    const bgA = document.getElementById("bgA");
+    const bgB = document.getElementById("bgB");
+
+    let idx = 0;
+    let showingA = true;
+
+    function setBg(el, src){
+      el.style.backgroundImage = `url('${src}')`;
+    }
+
+    function warmCache(){
+      slides.slice(1).forEach(src => { const img = new Image(); img.src = src; });
+    }
+
+    function startInterval(){
+      const intervalMs =
+        parseInt(getComputedStyle(document.documentElement).getPropertyValue("--hero-interval-ms")) || 5200;
+
+      setInterval(() => {
+        idx = (idx + 1) % slides.length;
+        const nextSrc = slides[idx];
+
+        if (showingA) {
+          setBg(bgB, nextSrc);
+          bgB.style.opacity = "1";
+          bgA.style.opacity = "0";
+        } else {
+          setBg(bgA, nextSrc);
+          bgA.style.opacity = "1";
+          bgB.style.opacity = "0";
+        }
+        showingA = !showingA;
+      }, intervalMs);
+    }
+
+    function bootHero(){
+      const first = new Image();
+      first.src = slides[0];
+
+      const revealHero = () => {
+        setBg(bgA, slides[0]);
+        bgA.style.opacity = "1";
+        bgB.style.opacity = "0";
+
+        // trigger intro (don’t wait for full window.load)
+        document.body.classList.remove("preload");
+        requestAnimationFrame(() => document.body.classList.add("is-loaded"));
+
+        warmCache();
+        startInterval();
+      };
+
+      if (first.complete) {
+        revealHero();
+      } else {
+        first.onload = revealHero;
+        setTimeout(() => {
+          if (document.body.classList.contains("preload")) revealHero();
+        }, 900);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", bootHero);
+
+    // =========================
+    // SCROLL REVEAL
+    // =========================
+    const revealEls = document.querySelectorAll(".reveal");
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
+    }, { threshold: 0.03 });
+    revealEls.forEach(el => io.observe(el));
+  </script>
+</body>
+</html>
