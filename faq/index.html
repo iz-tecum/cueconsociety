@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CES | FAQ</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    *{ box-sizing:border-box; }
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: Montserrat, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:#0b1220;
+      background:#ffffff;
+    }
+
+    /* =========================
+       GLOBAL LINKS (same as Alumni)
+       ========================= */
+    a{
+      color: inherit;
+      text-decoration: none;
+      transition: opacity 220ms ease, color 220ms ease, border-color 220ms ease;
+    }
+    a:hover{ opacity: .82; }
+
+    :root{
+      /* NAVBAR */
+      --nav-solid-bg: rgba(219, 242, 255, 0.96);
+      --nav-solid-border: rgba(16, 24, 40, 0.12);
+      --nav-solid-text: rgba(0, 0, 0, 0.9);
+
+      --nav-hero-text: rgba(255,255,255,.92);
+      --nav-hero-border: rgba(255,255,255,.12);
+      --nav-transition-ms: 420ms;
+      --nav-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+      /* HERO */
+      --hero-h: 75vh;
+      --hero-min-h: 20vh;
+      --hero-blur: 7px;
+      --hero-blur-hover: 4px;
+      --hero-scale: 1.04;
+      --hero-scale-hover: 1.085;
+
+      --hero-dim-top: 0.00;
+      --hero-dim-bottom: 0.00;
+
+      --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --hero-fade-ms: 1200ms;
+      --hero-hover-ms: 1000ms;
+      --hero-interval-ms: 5200ms;
+
+      /* LAYOUT */
+      --padX: 28px;
+
+      /* IMAGE HOVERS */
+      --grid-scale: 1.065;
+      --grid-hover-ms: 420ms;
+
+      /* CARD LOOK */
+      --card-bg: rgb(245,245,245);
+      --card-radius: 0px;
+    }
+
+    /* =========================
+       TOP NAV (same system)
+       ========================= */
+    .topbar{
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      background: transparent;
+      border-bottom: 0px solid transparent;
+      transition:
+        background-color var(--nav-transition-ms) var(--nav-transition-ease),
+        border-color     var(--nav-transition-ms) var(--nav-transition-ease),
+        box-shadow       var(--nav-transition-ms) var(--nav-transition-ease);
+    }
+
+    .brand-float{
+      position: absolute;
+      left: var(--padX);
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      z-index: 60;
+    }
+    .brand-float img{
+      width: 54px;
+      height: 58px;
+      object-fit: contain;
+      display:block;
+    }
+
+    .topbar-inner{
+      width: 100%;
+      padding: 14px var(--padX);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .nav{
+      margin-left: auto;
+      display:flex;
+      align-items:center;
+      gap: 18px;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      color: var(--nav-hero-text);
+    }
+    .nav a{
+      padding: 8px 8px;
+      font-weight: 500;
+      color: inherit;
+      opacity: .95;
+      transition: opacity 220ms ease;
+    }
+    .nav a:hover{ opacity: .85; }
+
+    /* dropdown */
+    .drop > button{
+      appearance: none;
+      border: 0;
+      background: transparent;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: inherit;
+      padding: 14px 8px;
+      cursor: pointer;
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 101;
+    }
+    .caret{
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid currentColor;
+      opacity: .75;
+      transform: translateY(1px) rotate(0deg);
+      transition: transform 220ms ease;
+    }
+    .drop:hover .caret,
+    .drop:focus-within .caret{
+      transform: translateY(1px) rotate(180deg);
+    }
+    .drop{
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .menu{
+      position: absolute;
+      left: -5px;
+      right: 0px;
+      top: calc(100% + 13px);
+      min-width: 100%;
+      width: 104%;
+      background: rgba(16,24,40,.92);
+      border: 0px solid rgba(255,255,255,.10);
+      padding: 0px;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: opacity 220ms ease, transform 220ms ease;
+      text-align: center;
+    }
+    .drop:hover .menu,
+    .drop:focus-within .menu{
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .drop::after{
+      content:"";
+      position:absolute;
+      left:0; right:0;
+      top: 100%;
+      height: 14px;
+    }
+    .menu a{
+      display:block;
+      padding: 15px 0px;
+      color: rgba(255,255,255,.92);
+      font-weight: 600;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+      font-size: 12px;
+      text-align:center;
+    }
+    .menu a:hover{ background: rgba(255,255,255,.08); opacity: 1; }
+
+    .recruit{
+      margin-left: 8px;
+      padding: 12px 18px !important;
+      border: 2px solid rgba(255, 255, 255, 0.95);
+      background: transparent;
+      color: rgba(255,255,255,.95) !important;
+      font-weight: 600 !important;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      transition:
+        background-color 220ms ease,
+        border-color 220ms ease,
+        color 220ms ease,
+        transform 220ms ease,
+        opacity 220ms ease;
+    }
+    .recruit:hover{ background-color: rgba(255,255,255,.10); opacity: 1; }
+    .recruit:active{ transform: translateY(0px); }
+
+    .topbar.is-solid{
+      background: rgb(228, 244, 255);
+      border-bottom: 0px solid var(--nav-solid-border);
+      box-shadow: 0 6px 22px rgba(16,24,40,.08);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .topbar.is-solid .nav{ color: var(--nav-solid-text); }
+    .topbar.is-solid .recruit{
+      border-color: rgba(0,0,0,0.856);
+      color: rgba(16,24,40,.92) !important;
+      background: transparent;
+    }
+    .topbar.is-solid .recruit:hover{ background: rgba(16,24,40,.06); }
+
+    /* =========================
+       HERO (slideshow)
+       ========================= */
+    .hero{
+      position: relative;
+      height: var(--hero-h);
+      min-height: var(--hero-min-h);
+      overflow: hidden;
+      background: #0b1220; /* stays black during preload */
+      padding-top: 70px;
+    }
+    .hero-bg{
+      position:absolute;
+      inset:0;
+      background-size: cover;
+      background-position: center;
+      transform: scale(var(--hero-scale));
+      filter: blur(var(--hero-blur));
+      opacity: 0;
+      transition:
+        opacity var(--hero-fade-ms) var(--hero-ease),
+        filter var(--hero-hover-ms) var(--hero-ease),
+        transform var(--hero-hover-ms) var(--hero-ease);
+      will-change: opacity, transform, filter;
+    }
+
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,var(--hero-dim-top)),
+        rgba(0,0,0,var(--hero-dim-bottom))
+      );
+      z-index:2;
+    }
+    .hero:hover .hero-bg{
+      filter: blur(var(--hero-blur-hover));
+      transform: scale(var(--hero-scale-hover));
+    }
+
+    .hero-inner{
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      padding: 0 var(--padX) 80px;
+      text-align:center;
+    }
+    .hero h1{
+      font-size: clamp(64px, 5.2vw, 86px);
+      letter-spacing: -0.03em;
+      color: rgba(255,255,255,.95);
+      font-weight: 600;
+      line-height: 1.05;
+      max-width: 2000px;
+      margin: 10px auto;
+    }
+
+    .hero-socials{
+      position:absolute;
+      left: var(--padX);
+      right: var(--padX);
+      bottom: 18px;
+      z-index: 4;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 14px;
+      color: rgba(255,255,255,.86);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .hero-socials .right{
+      display:flex;
+      gap: 16px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .hero-socials a{
+      color: rgba(255,255,255,.88);
+      border-bottom: 1px solid rgba(255,255,255,.22);
+      padding-bottom: 2px;
+      opacity: .95;
+    }
+    .hero-socials a:hover{ opacity: .82; }
+
+    /* =========================
+       PAGE CLIP
+       ========================= */
+    .page-clip{ overflow-x: clip; }
+    @supports not (overflow-x: clip){
+      .page-clip{ overflow-x: hidden; }
+    }
+
+    /* =========================
+       SECTION + WRAP
+       ========================= */
+    .section{
+      padding: 74px var(--padX);
+      background:#fff;
+    }
+    .wrap{
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    /* =========================
+       FAQ LAYOUT (same as Alumni)
+       ========================= */
+    .faq-layout{
+      display:flex;
+      align-items:flex-start;
+      gap: 28px;
+    }
+    .faq-main{
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    .faq-side{
+      width: 420px;
+      flex: 0 0 420px;
+      position: sticky;
+      top: 50px;
+      margin-left: 200px;
+    }
+
+    .side-photo{
+      position: relative;
+      overflow: hidden;
+      border: 4px solid rgba(219, 242, 255, 0.96);
+      background: #d9d9d9;
+      height: 1100px;
+      border-radius: 0px;
+      width: 100%;
+    }
+    .side-photo::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image: var(--img);
+      background-size: cover;
+      background-position: center;
+      transform: scale(1.04);
+      transition: transform var(--grid-hover-ms) ease;
+      will-change: transform;
+    }
+    .side-photo:hover::before{ transform: scale(var(--grid-scale)); }
+
+    /* =========================
+       TITLE + STACK (same rhythm)
+       ========================= */
+    .block-title{
+      margin: 40px 0 -28px;
+      text-align:center;
+      font-size: 44px;
+      letter-spacing: -0.02em;
+      font-weight: 500;
+      color: rgba(16,24,40,.92);
+    }
+
+    /* MAIN KNOB: move everything under title together */
+    .faq-stack{
+      width: 80%;
+      margin-left: 40px;
+      transform: translateX(75px);
+    }
+
+    .faq-card{
+      border: 0px solid rgba(16,24,40,.10);
+      border-radius: var(--card-radius);
+      padding: 50px 34px 20px;
+      text-align:center;
+      background: transparent;
+    }
+    .faq-text{
+      margin: 0 auto;
+      max-width: 940px;
+      color: rgba(16,24,40,.90);
+      font-size: 22px;
+      line-height: 1.95;
+      font-weight: 400;
+      white-space: pre-line;
+    }
+
+    /* =========================
+       FAQ SECTIONS + ACCORDION
+       ========================= */
+    .faq-section{
+      margin-top: 46px;
+    }
+
+    .faq-section-title{
+      margin: 0 0 16px;
+      font-size: 34px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: rgba(16,24,40,.92);
+      text-align: left;
+    }
+
+    .faq-list{
+      display:flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* each FAQ uses the same gray-card language as your class cards */
+    .faq-item{
+      background: var(--card-bg);
+      border: 0px solid rgba(16,24,40,.10);
+      border-radius: var(--card-radius);
+      padding: 22px 22px 18px;
+      transition: background-color 220ms ease, transform 220ms ease;
+    }
+    .faq-item:hover{
+      background: rgb(252,252,252);
+    }
+
+    .faq-btn{
+      width: 100%;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+
+      display:flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .faq-q{
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: rgba(16,24,40,.92);
+      line-height: 1.35;
+    }
+
+    /* plus/minus icon */
+    .faq-icon{
+      width: 28px;
+      height: 28px;
+      position: relative;
+      flex: 0 0 28px;
+      opacity: .85;
+      transition: opacity 220ms ease;
+    }
+    .faq-item:hover .faq-icon{ opacity: 1; }
+    .faq-icon::before,
+    .faq-icon::after{
+      content:"";
+      position:absolute;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 2px;
+      background: rgba(16,24,40,.92);
+      transform: translate(-50%,-50%);
+      transition: transform 220ms ease, opacity 220ms ease;
+    }
+    .faq-icon::after{
+      transform: translate(-50%,-50%) rotate(90deg);
+    }
+
+    /* open state: make plus -> minus by hiding vertical stroke */
+    .faq-item.open .faq-icon::after{
+      opacity: 0;
+      transform: translate(-50%,-50%) rotate(90deg) scaleY(0.2);
+    }
+
+    .faq-body{
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: max-height 320ms var(--hero-ease), opacity 240ms var(--hero-ease), transform 240ms var(--hero-ease);
+    }
+    .faq-item.open .faq-body{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .faq-a{
+      margin: 14px 2px 0;
+      color: rgba(16,24,40,.78);
+      font-size: 16px;
+      line-height: 1.95;
+      font-weight: 400;
+      white-space: pre-line;
+    }
+
+    /* =========================
+       FOOTER (same system)
+       ========================= */
+    .footer{
+      padding: 64px var(--padX);
+      background: #fff;
+    }
+    .footer-inner{
+      max-width: 1800px;
+      margin: 0 auto;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 24px;
+    }
+    .footer-left h4,
+    .footer-right h4{
+      margin: 0 0 18px;
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .footer-left .line{
+      margin: 10px 0;
+      color: rgba(16,24,40,.78);
+      font-size: 14px;
+      font-weight: 400;
+    }
+    .footer-left a{
+      border-bottom: 1px solid rgba(16,24,40,.22);
+      padding-bottom: 2px;
+    }
+    .footer-left a:hover{ border-color: rgba(16,24,40,.12); opacity: .82; }
+
+    .footer-right{ text-align: right; }
+    .footer-links{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items:flex-end;
+    }
+    .footer-links a{
+      color: rgba(16,24,40,.78);
+      font-size: 14px;
+      font-weight: 400;
+      border-bottom: 1px solid rgba(16,24,40,.22);
+      padding-bottom: 2px;
+    }
+    .footer-links a:hover{ border-color: rgba(16,24,40,.12); opacity: .82; }
+
+    /* =========================
+       PAGE LOAD + SCROLL REVEAL
+       (black -> first image, then text fades in)
+       ========================= */
+    body.preload .hero-bg{ opacity: 0 !important; }
+    body.preload .hero-inner > div{ opacity: 0; transform: translateY(18px); }
+    body.preload .hero-socials{ opacity: 0; transform: translateY(10px); }
+
+    body.is-loaded .hero-inner > div{
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 900ms var(--hero-ease), transform 900ms var(--hero-ease);
+      transition-delay: 140ms;
+    }
+    body.is-loaded .hero-socials{
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 900ms var(--hero-ease), transform 900ms var(--hero-ease);
+      transition-delay: 260ms;
+    }
+
+    .reveal{
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 700ms var(--hero-ease), transform 700ms var(--hero-ease);
+    }
+    .reveal.in{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* =========================
+       RESPONSIVE
+       ========================= */
+    @media (max-width: 1680px){
+      .faq-side{ width: 320px; flex-basis: 320px; }
+      .side-photo{ height: 740px; }
+    }
+
+    @media (max-width: 980px){
+      .nav{ gap: 10px; font-size: 12px; }
+      .recruit{ padding: 10px 14px !important; }
+      .hero{ min-height: 560px; }
+
+      .faq-layout{ flex-direction: column; }
+      .faq-side{
+        position: static;
+        width: 100%;
+        flex-basis: auto;
+        margin-left: 0;
+      }
+      .side-photo{ height: 520px; }
+
+      .faq-stack{
+        width: 100%;
+        margin-left: 0;
+        transform: none;
+      }
+
+      .footer-inner{ flex-direction: column; }
+      .footer-right{ text-align:left; }
+      .footer-links{ align-items:flex-start; }
+    }
+  </style>
+</head>
+
+<body class="preload">
+  <!-- NAV -->
+  <header class="topbar" id="topbar">
+    <div class="topbar-inner">
+      <a class="brand brand-float" href="../index.html" aria-label="Home">
+        <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
+      </a>
+
+      <nav class="nav" aria-label="Primary">
+        <div class="drop" id="aboutDrop">
+          <button type="button" id="aboutBtn" aria-haspopup="true" aria-expanded="false">
+            ABOUT US <span class="caret" aria-hidden="true"></span>
+          </button>
+          <div class="menu" role="menu" aria-label="About menu">
+            <a href="../about/index.html" role="menuitem">ABOUT</a>
+            <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
+          </div>
+        </div>
+
+        <a href="../events/index.html">EVENTS</a>
+        <a href="../alumni/index.html">ALUMNI</a>
+        <a href="../faq/index.html">FAQ</a>
+        <a href="../contact/index.html">CONTACT</a>
+        <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page-clip">
+    <!-- HERO -->
+    <section class="hero" id="hero">
+      <div class="hero-bg" id="bgA"></div>
+      <div class="hero-bg" id="bgB"></div>
+
+      <div class="hero-inner">
+        <div>
+          <h1>FAQ</h1>
+        </div>
+      </div>
+
+      <div class="hero-socials">
+        <div class="left">COLUMBIA ECONOMICS SOCIETY</div>
+        <div class="right">
+          <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">INSTAGRAM</a>
+          <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LINKEDIN</a>
+          <a href="mailto:econboard@columbia.edu" aria-label="Email">EMAIL</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MAIN -->
+  <section class="section reveal" id="faq">
+    <div class="wrap">
+      <div class="faq-layout">
+
+        <!-- LEFT -->
+        <div class="faq-main">
+          <h2 class="block-title">Frequently Asked Questions</h2>
+
+          <div class="faq-stack">
+            <div class="faq-card">
+              <p class="faq-text">Answers to common questions about membership, involvement, and CES programming.</p>
+            </div>
+
+            <!-- SECTION 1 -->
+            <div class="faq-section" aria-label="Membership and Involvement">
+              <h3 class="faq-section-title">Membership &amp; Involvement</h3>
+
+              <div class="faq-list">
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">What are the key differences between our General Body and Operating Committee Members (OCMs)?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">General Body members are welcome to attend CES events and engage with our community throughout the semester.
+OCMs take on an active role helping execute programming and operations, supporting event logistics, outreach, and internal initiatives alongside the E-Board.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">Who can apply for our OCM role?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">The OCM role is open to freshmen and sophomores enrolled in CC, SEAS, Barnard, and GS. This opportunity is designed to engage students early in their academic careers with a keen interest in finance and economics-adjacent work.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">When do OCM applications open?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">OCM recruitment typically runs early in the semester. We announce exact dates on our Instagram/LinkedIn and through campus channels—check those first if you’re planning ahead.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">What is the OCM application process like?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">Expect a short written application (interest + availability) and, if selected, a brief interview or conversation. We mainly want to understand how you’d contribute and what you want to learn.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">What kind of candidate do we look for?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">We value reliability, initiative, and strong communication more than a specific major or prior experience. If you’re consistent, curious, and willing to help build high-signal programming, you’ll fit in.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">What are the OCM responsibilities?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">OCMs support event execution (setup, check-in, speaker support), outreach and promotion, and internal projects that improve CES operations. Responsibilities vary by week depending on the event calendar.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">What is the expected time commitment?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">Time commitment depends on the programming calendar. Most weeks are light, with heavier involvement around major events. We aim to be respectful of academics and communicate expectations clearly.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">Can I get involved if I’m not an OCM?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">Yes. CES events are designed to be accessible and student-first. Attend events, introduce yourself to organizers, and stay engaged—many members start that way before applying later.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 2 -->
+            <div class="faq-section" aria-label="Programs and Events">
+              <h3 class="faq-section-title">Programs &amp; Events</h3>
+
+              <div class="faq-list">
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">What kinds of events does CES host?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">CES hosts speaker events, recruiting prep sessions, alumni panels, and community gatherings focused on practical pathways across finance, consulting, research, and beyond.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">Are CES events open to all students?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">In general, yes. Some events may have limited capacity or require RSVP, but our goal is broad access and high-signal programming for the wider campus community.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">How do I hear about upcoming events?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">Follow our Instagram and LinkedIn for announcements. We also share updates through campus channels and email—if you don’t see something, check our recent posts first.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">Can I suggest a speaker or event idea?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">Yes — we welcome suggestions. Send ideas with a short rationale (topic + audience + why now) to our board email so we can evaluate fit and feasibility.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">How can alumni or organizations partner with CES?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">For partnerships, speaker opportunities, or hosting an event with CES, reach out via email with your goals, timeline, and what you’d like to run. We’ll respond with next steps and logistics.</p>
+                  </div>
+                </div>
+
+                <div class="faq-item">
+                  <button class="faq-btn" aria-expanded="false">
+                    <h4 class="faq-q">Do you run recruiting prep or skill-building programming?</h4>
+                    <span class="faq-icon" aria-hidden="true"></span>
+                  </button>
+                  <div class="faq-body">
+                    <p class="faq-a">Yes — we periodically run recruiting-focused sessions (resume, networking, interview prep) alongside industry panels and talks. The best way to catch these is through announcements during the semester.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT -->
+        <aside class="faq-side" aria-label="Campus photo">
+          <div class="side-photo" style="--img:url('../verticals/im4.jpg');"></div>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer reveal" id="contact">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <h4>Columbia Economics Society</h4>
+        <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
+        <div class="line">70 Morningside Drive</div>
+        <div class="line">New York, NY 10027</div>
+      </div>
+
+      <div class="footer-right">
+        <h4>Follow Us</h4>
+        <div class="footer-links">
+          <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
+          <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
+          <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
+          <a href="https://linktr.ee/columbiaeconsociety?utm_source=ig&utm_medium=social&utm_content=link_in_bio" aria-label="Linktree">Linktree</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // =========================
+    // NAV: transparent on hero, solid after scroll
+    // =========================
+    const topbar = document.getElementById("topbar");
+    const heroEl = document.getElementById("hero");
+    function setNavState(){
+      const heroBottom = heroEl.getBoundingClientRect().bottom;
+      if(heroBottom <= 71) topbar.classList.add("is-solid");
+      else topbar.classList.remove("is-solid");
+    }
+    window.addEventListener("scroll", setNavState, { passive:true });
+    window.addEventListener("resize", setNavState);
+    setNavState();
+
+    // =========================
+    // HERO SLIDESHOW (fast first-paint fix)
+    // - Fade in as soon as FIRST image loads (not window.load)
+    // - Prevents “late transition” caused by slow embeds/other loads
+    // =========================
+    const slides = [
+      "../horizontals/im6.jpg",
+      "../horizontals/im5.jpg",
+      "../horizontals/im1.jpg"
+    ];
+
+    const bgA = document.getElementById("bgA");
+    const bgB = document.getElementById("bgB");
+
+    let idx = 0;
+    let showingA = true;
+
+    function setBg(el, src){
+      el.style.backgroundImage = `url('${src}')`;
+    }
+
+    // preload all (after first)
+    function warmCache(){
+      slides.slice(1).forEach(src => { const img = new Image(); img.src = src; });
+    }
+
+    // show first slide ASAP when it finishes loading
+    function bootHero(){
+      const first = new Image();
+      first.src = slides[0];
+
+      const revealHero = () => {
+        setBg(bgA, slides[0]);
+        bgA.style.opacity = "1";
+        bgB.style.opacity = "0";
+
+        // remove preload NOW (don’t wait for full window load)
+        document.body.classList.remove("preload");
+        requestAnimationFrame(() => document.body.classList.add("is-loaded"));
+
+        warmCache();
+        startInterval();
+      };
+
+      if (first.complete) {
+        revealHero();
+      } else {
+        first.onload = revealHero;
+        // safety fallback: if something weird happens, still reveal after a short beat
+        setTimeout(() => {
+          if (document.body.classList.contains("preload")) revealHero();
+        }, 900);
+      }
+    }
+
+    function nextSlide(){
+      idx = (idx + 1) % slides.length;
+      const nextSrc = slides[idx];
+
+      if(showingA){
+        setBg(bgB, nextSrc);
+        bgB.style.opacity = "1";
+        bgA.style.opacity = "0";
+      }else{
+        setBg(bgA, nextSrc);
+        bgA.style.opacity = "1";
+        bgB.style.opacity = "0";
+      }
+      showingA = !showingA;
+    }
+
+    let heroTimer = null;
+    function startInterval(){
+      const intervalMs = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue("--hero-interval-ms")
+      ) || 5200;
+
+      if (heroTimer) clearInterval(heroTimer);
+      heroTimer = setInterval(nextSlide, intervalMs);
+    }
+
+    document.addEventListener("DOMContentLoaded", bootHero);
+
+    // =========================
+    // FAQ ACCORDION
+    // =========================
+    const items = document.querySelectorAll(".faq-item");
+    items.forEach(item => {
+      const btn = item.querySelector(".faq-btn");
+      const body = item.querySelector(".faq-body");
+
+      // ensure closed initial
+      body.style.maxHeight = "0px";
+
+      btn.addEventListener("click", () => {
+        const isOpen = item.classList.contains("open");
+
+        if (isOpen) {
+          item.classList.remove("open");
+          btn.setAttribute("aria-expanded", "false");
+          body.style.maxHeight = "0px";
+        } else {
+          item.classList.add("open");
+          btn.setAttribute("aria-expanded", "true");
+          body.style.maxHeight = body.scrollHeight + "px";
+        }
+      });
+    });
+
+    // =========================
+    // SCROLL REVEAL
+    // =========================
+    const revealEls = document.querySelectorAll(".reveal");
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
+    }, { threshold: 0.03 });
+    revealEls.forEach(el => io.observe(el));
+  </script>
+</body>
+</html>
