@@ -10,30 +10,49 @@ function escapeHtml(s = "") {
 }
 
 module.exports = async (req, res) => {
-  // ✅ CORS for GitHub Pages
-  res.setHeader("Access-Control-Allow-Origin", "https://iz-tecum.github.io");
+  // ✅ CORS (must run before any early returns)
+  const allowedOrigins = new Set([
+    "https://iz-tecum.github.io",
+    "https://ces-website-ep7e6i98q-iz-tecums-projects.vercel.app",
+  ]);
+
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    // If no Origin header (e.g., server-to-server), don't block it.
+    // If you want to be strict, you can omit this.
+    res.setHeader("Access-Control-Allow-Origin", "https://iz-tecum.github.io");
+  }
+
+  res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
 
   // ✅ Preflight
   if (req.method === "OPTIONS") return res.status(200).end();
 
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
+    res.setHeader("Allow", "POST, OPTIONS");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return res.status(500).json({
-      error: "Missing RESEND_API_KEY. Add it in Vercel → Settings → Environment Variables (Production)."
+      error:
+        "Missing RESEND_API_KEY. Add it in Vercel → Settings → Environment Variables (Production).",
     });
   }
 
   // Vercel may give req.body as object; sometimes as string
   let body = req.body;
   if (typeof body === "string") {
-    try { body = JSON.parse(body); } catch { body = {}; }
+    try {
+      body = JSON.parse(body);
+    } catch {
+      body = {};
+    }
   }
 
   const {
@@ -41,7 +60,7 @@ module.exports = async (req, res) => {
     email = "",
     subject = "",
     message = "",
-    company = "" // honeypot
+    company = "", // honeypot
   } = body || {};
 
   // Honeypot: if bots fill it, silently succeed
@@ -50,8 +69,15 @@ module.exports = async (req, res) => {
   }
 
   // Basic validation
-  if (!String(name).trim() || !String(email).trim() || !String(subject).trim() || !String(message).trim()) {
-    return res.status(400).json({ error: "Please fill out name, email, subject, and message." });
+  if (
+    !String(name).trim() ||
+    !String(email).trim() ||
+    !String(subject).trim() ||
+    !String(message).trim()
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Please fill out name, email, subject, and message." });
   }
   if (!String(email).includes("@")) {
     return res.status(400).json({ error: "Please enter a valid email address." });
@@ -68,7 +94,7 @@ module.exports = async (req, res) => {
   const payload = {
     from,
     to: [to],
-    reply_to: email, // Resend supports reply_to  [oai_citation:2‡Resend](https://resend.com/docs/llms-full.txt?utm_source=chatgpt.com)
+    reply_to: email,
     subject: `CES Contact: ${subject}`,
     text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
     html: `
@@ -80,26 +106,25 @@ module.exports = async (req, res) => {
         <hr/>
         <p>${safeMessage}</p>
       </div>
-    `
+    `,
   };
 
   try {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     const data = await r.json().catch(() => ({}));
 
     if (!r.ok) {
-      // This is the key part: bubble up Resend's actual error to your frontend
       return res.status(r.status).json({
         error: data?.message || data?.error || "Resend rejected the request",
-        details: data
+        details: data,
       });
     }
 
