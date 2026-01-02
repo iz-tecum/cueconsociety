@@ -10,32 +10,35 @@ function escapeHtml(s = "") {
 }
 
 module.exports = async (req, res) => {
-  // ✅ CORS (must run before any early returns)
+  // ✅ CORS (run before any returns)
   const allowedOrigins = new Set([
-    "https://iz-tecum.github.io",
-    "https://ces-website-2ic5r7mw1-iz-tecums-projects.vercel.app",
+    "https://iz-tecum.github.io",     // GitHub Pages origin
+    "https://cueconsociety.vercel.app" // Stable Vercel domain
   ]);
 
   const origin = req.headers.origin;
 
-  // If request comes from browser with an Origin header, enforce allowlist.
-  if (origin) {
-    if (allowedOrigins.has(origin)) {
-      res.setHeader("Access-Control-Allow-Origin", origin);
-    } else {
-      return res.status(403).json({ error: "Origin not allowed" });
-    }
+  // Always emit CORS headers (even on errors), so browser doesn't show "Failed to fetch"
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   } else {
-    // No Origin header (server-to-server); keep a sane default.
+    // If origin is missing (server-to-server) or unrecognized, don't reflect it.
+    // We still set something so browser gets a readable response.
     res.setHeader("Access-Control-Allow-Origin", "https://iz-tecum.github.io");
   }
 
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+  res.setHeader("Cache-Control", "no-store");
 
   // ✅ Preflight
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // If a browser origin is present and not allowed, return 403 *with CORS headers already set*
+  if (origin && !allowedOrigins.has(origin)) {
+    return res.status(403).json({ error: "Origin not allowed", origin });
+  }
 
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST, OPTIONS");
