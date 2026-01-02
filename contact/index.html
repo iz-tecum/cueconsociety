@@ -16,7 +16,7 @@
       margin:0;
       font-family: Montserrat, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color:#0b1220;
-      background:#ffffff;
+      background:transparent;
     }
 
     /* =========================
@@ -51,7 +51,7 @@
       --hero-dim-top: 0.00;
       --hero-dim-bottom: 0.00;
 
-      --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --hero-ease: cubic-bezier(0.22, 0, 0.36, 1);
       --hero-fade-ms: 1200ms;
       --hero-hover-ms: 1000ms;
       --hero-interval-ms: 5200ms;
@@ -66,273 +66,471 @@
       /* CARD LOOK */
       --card-bg: rgb(245,245,245);
       --card-radius: 0px;
+
+      /* ✅ reserve space for floating logo (so nav aligns like other pages) */
+      --logo-w: 54px;
+      --logo-h: 58px;
+      --logo-gap: 18px;
     }
 
-    /* =========================
-       TOP NAV
-       ========================= */
-    .topbar{
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 50;
-      background: transparent;
-      border-bottom: 0px solid transparent;
-      transition:
-        background-color var(--nav-transition-ms) var(--nav-transition-ease),
-        border-color     var(--nav-transition-ms) var(--nav-transition-ease),
-        box-shadow       var(--nav-transition-ms) var(--nav-transition-ease);
-    }
+  /* =========================
+     TOP NAV
+     ========================= */
+  .topbar{
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    background: transparent;
+    border-bottom: 0px solid transparent;
+    transition:
+      background-color var(--nav-transition-ms) var(--nav-transition-ease),
+      border-color     var(--nav-transition-ms) var(--nav-transition-ease),
+      box-shadow       var(--nav-transition-ms) var(--nav-transition-ease);
+  }
 
-    .brand-float{
-      position: absolute;
-      left: var(--padX);
-      top: 50%;
-      transform: translateY(-50%);
-      display: inline-flex;
-      align-items: center;
-      z-index: 60;
-    }
-    .brand-float img{
-      width: 54px;
-      height: 58px;
-      object-fit: contain;
-      display:block;
-    }
+  .brand-float{
+    position: absolute;
+    left: var(--padX);
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    z-index: 60;
+  }
+  .brand-float img{
+    width: var(--logo-w);
+    height: var(--logo-h);
+    object-fit: contain;
+    display: block;
+  }
 
+  .topbar-inner{
+    width: 100%;
+    margin: 0;
+    padding: 14px var(--padX);
+    padding-left: calc(var(--padX) + var(--logo-w) + var(--logo-gap));
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    position: relative;
+  }
+
+  .nav{
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    color: var(--nav-hero-text);
+  }
+
+  /* ✅ FIX: desktop row spacing lives on nav-links (since links are wrapped) */
+  .nav .nav-links{
+    display:flex;
+    align-items:center;
+    gap: clamp(10px, 1.6vw, 18px);
+    font-size: clamp(11px, 1.05vw, 13px);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .nav a{
+    padding: 8px clamp(4px, 0.7vw, 8px);
+    font-weight: 500;
+    color: inherit;
+    opacity: .95;
+    transition: opacity 220ms ease;
+  }
+  .nav a:hover{ opacity: .85; }
+
+  /* dropdown */
+  .drop{
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .drop > button{
+    appearance: none;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 500;
+    color: inherit;
+
+    padding: 14px clamp(4px, 0.7vw, 8px);
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 101;
+  }
+
+  .caret{
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid currentColor;
+    opacity: .75;
+    transform: translateY(1px) rotate(0deg);
+    transition: transform 220ms ease;
+  }
+  .drop:hover .caret,
+  .drop:focus-within .caret{
+    transform: translateY(1px) rotate(180deg);
+  }
+
+  .menu{
+    position: absolute;
+    left: -5px;
+    right: 0px;
+    top: calc(100% + 13px);
+    min-width: 100%;
+    width: 104%;
+    background: rgba(16,24,40,.92);
+    border: 0px solid rgba(255,255,255,.10);
+    padding: 0px;
+    z-index: 100;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 220ms ease, transform 220ms ease;
+    text-align: center;
+  }
+  .drop:hover .menu,
+  .drop:focus-within .menu{
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .drop::after{
+    content:"";
+    position:absolute;
+    left:0; right:0;
+    top: 100%;
+    height: 14px;
+  }
+  .menu a{
+    display:block;
+    padding: 15px 0px;
+    color: rgba(255,255,255,.92);
+    font-weight: 600;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    font-size: 12px;
+    text-align:center;
+    opacity: 1;
+    transition: background-color 220ms ease, opacity 220ms ease;
+  }
+  .menu a:hover{ background: rgba(255,255,255,.08); opacity: .95; }
+
+  .recruit{
+    margin-left: clamp(4px, 0.8vw, 8px);
+    padding: 12px 18px !important;
+    border: 2px solid rgba(255, 255, 255, 0.95);
+    background: transparent;
+    color: rgba(255,255,255,.95) !important;
+    font-weight: 600 !important;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease,
+      transform 220ms ease,
+      opacity 220ms ease;
+    opacity: 1;
+  }
+  .recruit:hover{ background-color: rgba(255,255,255,.10); opacity: .95; }
+  .recruit:active{ transform: translateY(0px); }
+
+  .topbar.is-solid{
+    background: rgb(228, 244, 255);
+    border-bottom: 0px solid var(--nav-solid-border);
+    box-shadow: 0 6px 22px rgba(16,24,40,.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .topbar.is-solid .nav{ color: var(--nav-solid-text); }
+  .topbar.is-solid .recruit{
+    border-color: rgba(0,0,0,0.856);
+    color: rgba(16,24,40,.92) !important;
+    background: transparent;
+  }
+  .topbar.is-solid .recruit:hover{ background: rgba(16,24,40,.06); }
+
+  @media (max-width: 1100px){
+    :root{ --logo-w: 46px; --logo-h: 50px; --logo-gap: 14px; }
     .topbar-inner{
+      padding: 12px var(--padX);
+      padding-left: calc(var(--padX) + var(--logo-w) + var(--logo-gap));
+    }
+  }
+
+  @media (max-width: 760px){
+    :root{ --logo-w: 40px; --logo-h: 44px; --logo-gap: 12px; }
+    .nav .nav-links{ font-size: 12px; letter-spacing: 0.05em; }
+    .recruit{ padding: 10px 14px !important; }
+  }
+
+  /* =========================
+     MOBILE NAV TOGGLE
+     ========================= */
+  .nav-toggle{
+    display: none;
+    margin-left: auto;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,.22);
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .topbar.is-solid .nav-toggle{
+    border-color: rgba(16,24,40,.18);
+  }
+  .nav-toggle span{
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: rgba(255,255,255,.92);
+    transition: transform 220ms ease, opacity 220ms ease;
+  }
+  .topbar.is-solid .nav-toggle span{
+    background: rgba(16,24,40,.88);
+  }
+
+  @media (max-width: 920px){
+    .nav-toggle{ display: inline-flex; }
+
+    /* hide desktop row; use dropdown container under the bar */
+    .nav{
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      padding: 12px var(--padX) 0;
+
+      display: block;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 220ms ease, transform 220ms ease;
+
+      max-height: calc(100vh - 74px);
+      overflow: auto;
+    }
+
+    .topbar.nav-open .nav{
+      pointer-events: auto;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* panel */
+    .nav .nav-links{
+      width: min(520px, calc(100vw - (2 * var(--padX))));
+      margin: 0 auto; /* centered under topbar */
+      background: rgba(16,24,40,.92);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 14px 30px rgba(16,24,40,.18);
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: stretch;
+      white-space: normal;
+    }
+
+    /* rows */
+    .nav a,
+    .drop > button{
       width: 100%;
-      padding: 14px var(--padX);
+      padding: 16px 18px;
       display: flex;
       align-items: center;
-      gap: 18px;
+      justify-content: center;
+      text-align: center;
     }
 
-    .nav{
-      margin-left: auto;
-      display:flex;
-      align-items:center;
-      gap: 18px;
-      font-size: 13px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      white-space: nowrap;
-      color: var(--nav-hero-text);
+    .recruit{
+      width: 100%;
+      justify-content: center;
+      margin-left: 0 !important;
     }
-    .nav a{
-      padding: 8px 8px;
-      font-weight: 500;
-      color: inherit;
-      opacity: .95;
-      transition: opacity 220ms ease;
-    }
-    .nav a:hover{ opacity: .85; }
 
-    /* dropdown */
+    /* hamburger -> X */
+    .topbar.nav-open .nav-toggle span:nth-child(1){
+      transform: translateY(8px) rotate(45deg);
+    }
+    .topbar.nav-open .nav-toggle span:nth-child(2){
+      opacity: 0;
+    }
+    .topbar.nav-open .nav-toggle span:nth-child(3){
+      transform: translateY(-8px) rotate(-45deg);
+    }
+
+    /* MOBILE: dropdown opens on tap (focus) */
+    .drop{
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
     .drop > button{
-      appearance: none;
-      border: 0;
+      gap: 10px;
+    }
+
+    .drop .menu{
+      position: static;
+      width: 100%;
       background: transparent;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      color: inherit;
-      padding: 14px 8px;
-      cursor: pointer;
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      position: relative;
-      z-index: 101;
+      border: 0;
+      padding: 0;
+      margin: 0;
+
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: max-height 260ms ease, opacity 220ms ease, transform 220ms ease;
     }
-    .caret{
-      width: 0; height: 0;
-      border-left: 5px solid transparent;
-      border-right: 5px solid transparent;
-      border-top: 6px solid currentColor;
-      opacity: .75;
-      transform: translateY(1px) rotate(0deg);
-      transition: transform 220ms ease;
+
+    .drop:hover .menu,
+    .drop:focus-within .menu{
+      max-height: 260px;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
     }
+
+    .drop .menu a{
+      background: rgba(255,255,255,.06);
+      padding: 16px 18px;
+      width: 100%;
+      text-align: center;
+      margin: 0;
+    }
+
     .drop:hover .caret,
     .drop:focus-within .caret{
       transform: translateY(1px) rotate(180deg);
     }
-    .drop{
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-    }
-    .menu{
-      position: absolute;
-      left: -5px;
-      right: 0px;
-      top: calc(100% + 13px);
-      min-width: 100%;
-      width: 104%;
-      background: rgba(16,24,40,.92);
-      border: 0px solid rgba(255,255,255,.10);
-      padding: 0px;
-      z-index: 100;
-      opacity: 0;
-      transform: translateY(10px);
-      pointer-events: none;
-      transition: opacity 220ms ease, transform 220ms ease;
-      text-align: center;
-    }
-    .drop:hover .menu,
-    .drop:focus-within .menu{
-      opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-    .drop::after{
-      content:"";
-      position:absolute;
-      left:0; right:0;
-      top: 100%;
-      height: 14px;
-    }
-    .menu a{
-      display:block;
-      padding: 15px 0px;
-      color: rgba(255,255,255,.92);
-      font-weight: 600;
-      letter-spacing: .10em;
-      text-transform: uppercase;
-      font-size: 12px;
-      text-align:center;
-      opacity: 1;
-    }
-    .menu a:hover{ background: rgba(255,255,255,.08); opacity: 1; }
 
-    .recruit{
-      margin-left: 8px;
-      padding: 12px 18px !important;
-      border: 2px solid rgba(255, 255, 255, 0.95);
-      background: transparent;
-      color: rgba(255,255,255,.95) !important;
-      font-weight: 600 !important;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      transition:
-        background-color 220ms ease,
-        border-color 220ms ease,
-        color 220ms ease,
-        transform 220ms ease,
-        opacity 220ms ease;
-    }
-    .recruit:hover{ background-color: rgba(255,255,255,.10); opacity: 1; }
-    .recruit:active{ transform: translateY(0px); }
-
-    .topbar.is-solid{
-      background: rgb(228, 244, 255);
-      border-bottom: 0px solid var(--nav-solid-border);
-      box-shadow: 0 6px 22px rgba(16,24,40,.08);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .topbar.is-solid .nav{ color: var(--nav-solid-text); }
-    .topbar.is-solid .recruit{
-      border-color: rgba(0,0,0,0.856);
-      color: rgba(16,24,40,.92) !important;
-      background: transparent;
-    }
-    .topbar.is-solid .recruit:hover{ background: rgba(16,24,40,.06); }
-
+    .drop::after{ display: none; }
+  }
     /* =========================
-       HERO (slideshow)
-       ========================= */
-    .hero{
-      position: relative;
-      height: var(--hero-h);
-      min-height: var(--hero-min-h);
-      overflow: hidden;
-      background: #0b1220; /* start black */
-      padding-top: 70px;
-    }
-    .hero-bg{
-      position:absolute;
-      inset:0;
-      background-size: cover;
-      background-position: center;
-      transform: scale(var(--hero-scale));
-      filter: blur(var(--hero-blur));
-      opacity: 0;
-      transition:
-        opacity var(--hero-fade-ms) var(--hero-ease),
-        filter var(--hero-hover-ms) var(--hero-ease),
-        transform var(--hero-hover-ms) var(--hero-ease);
-      will-change: opacity, transform, filter;
-    }
-    .hero-bg.a{ opacity: 1; }
-    .hero-bg.b{ opacity: 0; }
+     HERO
+     ========================= */
+  .hero{
+    position: relative;
+    height: var(--hero-h);
+    min-height: var(--hero-min-h);
+    overflow: hidden;
+    padding-top: 70px;
+    background: transparent; /* ✅ FIX: stays black while images load */
+  }
+  .hero-bg{
+    position:absolute;
+    inset:0;
+    background-size: cover;
+    background-position: center;
+    transform: scale(var(--hero-scale));
+    filter: blur(var(--hero-blur));
+    opacity:1;
+    transition:
+      opacity var(--hero-fade-ms) var(--hero-ease),
+      filter var(--hero-hover-ms) var(--hero-ease),
+      transform var(--hero-hover-ms) var(--hero-ease);
+    will-change: opacity, transform, filter;
+  }
+  .hero-bg.a{ opacity: 1; }
+  .hero-bg.b{ opacity: 1; }
 
-    .hero::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background: linear-gradient(
-        to bottom,
-        rgba(0,0,0,var(--hero-dim-top)),
-        rgba(0,0,0,var(--hero-dim-bottom))
-      );
-      z-index:2;
-    }
-    .hero:hover .hero-bg{
-      filter: blur(var(--hero-blur-hover));
-      transform: scale(var(--hero-scale-hover));
-    }
+  .hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background: linear-gradient(
+      to bottom,
+      rgba(0,0,0,var(--hero-dim-top)),
+      rgba(0,0,0,var(--hero-dim-bottom))
+    );
+    z-index:2;
+  }
+  .hero:hover .hero-bg{
+    filter: blur(var(--hero-blur-hover));
+    transform: scale(var(--hero-scale-hover));
+  }
 
-    .hero-inner{
-      position: relative;
-      z-index: 3;
-      height: 100%;
-      display:flex;
-      align-items:flex-end;
-      justify-content:center;
-      padding: 0 var(--padX) 80px;
-      text-align:center;
-    }
-    .hero h1{
-      font-size: clamp(64px, 5.2vw, 86px);
-      letter-spacing: -0.03em;
-      color: rgba(255,255,255,.95);
-      font-weight: 600;
-      line-height: 1.05;
-      max-width: 2000px;
-      margin: 10px auto;
-    }
+  .hero-inner{
+    position: relative;
+    z-index: 3;
+    height: 100%;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    padding: 0 var(--padX) 80px;
+    text-align:center;
+  }
+  .hero h1{
+    font-size: clamp(64px, 5.2vw, 86px);
+    letter-spacing: -0.03em;
+    color: rgba(255,255,255,.95);
+    font-weight: 600;
+    line-height: 1.05;
+    max-width: 2000px;
+    margin: 10px auto;
+  }
 
-    .hero-socials{
-      position:absolute;
-      left: var(--padX);
-      right: var(--padX);
-      bottom: 18px;
-      z-index: 4;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap: 14px;
-      color: rgba(255,255,255,.86);
-      font-size: 12px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-    }
-    .hero-socials .right{
-      display:flex;
-      gap: 16px;
-      align-items:center;
-      justify-content:flex-end;
-    }
-    .hero-socials a{
-      color: rgba(255,255,255,.88);
-      border-bottom: 1px solid rgba(255,255,255,.22);
-      padding-bottom: 2px;
-      opacity: .95;
-    }
-    .hero-socials a:hover{ opacity: .82; }
+  .hero-socials{
+    position:absolute;
+    left: var(--padX);
+    right: var(--padX);
+    bottom: 18px;
+    z-index: 4;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: 14px;
+    color: rgba(255,255,255,.86);
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .hero-socials .right{
+    display:flex;
+    gap: 16px;
+    align-items:center;
+    justify-content:flex-end;
+  }
+  .hero-socials a{
+    color: rgba(255,255,255,.88);
+    border-bottom: 1px solid rgba(255,255,255,.22);
+    padding-bottom: 2px;
+    transition: opacity 220ms ease, border-color 220ms ease;
+  }
+  .hero-socials a:hover{
+    opacity: .88;
+    border-bottom-color: rgba(255,255,255,.40);
+  }
 
     /* =========================
        PAGE CLIP
@@ -563,13 +761,23 @@
     }
     .footer-links a:hover{ border-color: rgba(16,24,40,.12); opacity: .82; }
 
+    .footer-copy{
+      max-width: 1800px;
+      margin: 0px auto 0;
+      padding: 0 var(--padX);
+      text-align: center;
+      color: rgba(16,24,40,.60);
+      font-size: 12px;
+      letter-spacing: .02em;
+  }
+
     /* =========================
        PAGE LOAD + SCROLL REVEAL
-       Starts black, then first image fades in ASAP after slide 1 loads
+       (match your CES preload style system)
        ========================= */
-    body.preload .hero-bg{ opacity: 0 !important; }
-    body.preload .hero-inner > div{ opacity: 0; transform: translateY(18px); }
-    body.preload .hero-socials{ opacity: 0; transform: translateY(10px); }
+    body.preload .hero-bg{ opacity: 1 !important; }
+    body.preload .hero-inner > div{ opacity: 1; transform: translateY(10px); }
+    body.preload .hero-socials{ opacity: 1; transform: translateY(10px); }
 
     body.is-loaded .hero-inner > div{
       opacity: 1;
@@ -627,19 +835,33 @@
       .footer-inner{ flex-direction: column; }
       .footer-right{ text-align:left; }
       .footer-links{ align-items:flex-start; }
+
+      /* ✅ tighten logo + reserved padding on smaller screens */
+      :root{ --logo-w: 46px; --logo-h: 50px; --logo-gap: 14px; }
+      .topbar-inner{ padding-left: calc(var(--padX) + var(--logo-w) + var(--logo-gap)); }
     }
   </style>
 </head>
 
 <body class="preload">
   <!-- NAV -->
-  <header class="topbar" id="topbar">
-    <div class="topbar-inner">
-      <a class="brand brand-float" href="../index.html" aria-label="Home">
-        <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
-      </a>
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a class="brand brand-float" href="../index.html" aria-label="Home">
+      <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
+    </a>
 
-      <nav class="nav" aria-label="Primary">
+    <!-- MOBILE TOGGLE (hamburger) -->
+    <button class="nav-toggle"
+            type="button"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav" id="mobileNav" aria-label="Primary">
+      <div class="nav-links">
         <div class="drop" id="aboutDrop">
           <button type="button" id="aboutBtn" aria-haspopup="true" aria-expanded="false">
             ABOUT US <span class="caret" aria-hidden="true"></span>
@@ -655,9 +877,10 @@
         <a href="../faq/index.html">FAQ</a>
         <a href="../contact/index.html">CONTACT</a>
         <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
-      </nav>
-    </div>
-  </header>
+      </div>
+    </nav>
+  </div>
+</header>
 
   <main class="page-clip">
     <!-- HERO -->
@@ -745,7 +968,7 @@
 
     // honeypot
     if ((payload.company || "").trim().length) {
-      statusEl.textContent = "Sent ✅";
+      statusEl.textContent = "Sent!";
       form.reset();
       return;
     }
@@ -765,7 +988,7 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to send.");
 
-      statusEl.textContent = "Sent ✅";
+      statusEl.textContent = "Sent!";
       form.reset();
     } catch (err) {
       statusEl.textContent = `Couldn’t send — ${err.message}`;
@@ -786,43 +1009,52 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
-  <footer class="footer reveal" id="footer">
-    <div class="footer-inner">
-      <div class="footer-left">
-        <h4>Columbia Economics Society</h4>
-        <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
-        <div class="line">70 Morningside Drive</div>
-        <div class="line">New York, NY 10027</div>
-      </div>
+<!-- FOOTER -->
+<footer class="footer reveal" id="contact">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <h4>Columbia Economics Society</h4>
+      <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
+      <div class="line">70 Morningside Drive</div>
+      <div class="line">New York, NY 10027</div>
+    </div>
 
-      <div class="footer-right">
-        <h4>Follow Us</h4>
-        <div class="footer-links">
-          <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
-          <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
-          <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
-          <a href="https://linktr.ee/columbiaeconsociety?utm_source=ig&utm_medium=social&utm_content=link_in_bio" aria-label="Linktree">Linktree</a>
-        </div>
+    <div class="footer-right">
+      <h4>Follow Us</h4>
+      <div class="footer-links">
+        <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
+        <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
+        <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
+        <a href="https://linktr.ee/columbiaeconsociety?utm_source=ig&utm_medium=social&utm_content=link_in_bio" aria-label="Linktree">Linktree</a>
       </div>
     </div>
-  </footer>
+  </div>
+
+  <div class="footer-copy">
+    © <span id="year"></span> Columbia Economics Society. All rights reserved.
+  </div>
+</footer>
 
   <script>
-    // =========================
-    // NAV: transparent on hero, solid after scroll
-    // =========================
-    const topbar = document.getElementById("topbar");
-    const heroEl = document.getElementById("hero");
+  // =========================
+  // NAV: transparent on hero, solid after scroll
+  // =========================
+  const topbar = document.getElementById("topbar");
+  const heroEl = document.getElementById("hero");
+  function setNavState(){
+    const heroBottom = heroEl.getBoundingClientRect().bottom;
+    if(heroBottom <= 71) topbar.classList.add("is-solid");
+    else topbar.classList.remove("is-solid");
+  }
+  window.addEventListener("scroll", setNavState, { passive:true });
+  window.addEventListener("resize", setNavState);
+  setNavState();
 
-    function setNavState(){
-      const heroBottom = heroEl.getBoundingClientRect().bottom;
-      if(heroBottom <= 71) topbar.classList.add("is-solid");
-      else topbar.classList.remove("is-solid");
-    }
-    window.addEventListener("scroll", setNavState, { passive:true });
-    window.addEventListener("resize", setNavState);
-    setNavState();
+  // =========================
+  // YEAR
+  // =========================
+  document.getElementById("year").textContent = new Date().getFullYear();
+
 
     // =========================
     // HERO SLIDESHOW (crossfade)
@@ -847,7 +1079,7 @@
       if(showingA){
         bgB.style.backgroundImage = `url('${slides[idx]}')`;
         bgB.style.opacity = "1";
-        bgA.style.opacity = "0";
+        bgA.style.opacity = "1";
       }else{
         bgA.style.backgroundImage = `url('${slides[idx]}')`;
         bgA.style.opacity = "1";
@@ -893,5 +1125,40 @@
     }, { threshold: 0.03 });
     revealEls.forEach(el => io.observe(el));
   </script>
+
+<script>
+  (function () {
+    const topbar = document.querySelector('.topbar');
+    const toggle = document.querySelector('.nav-toggle');
+    const nav = document.getElementById('mobileNav');
+
+    if (!topbar || !toggle || !nav) return;
+
+    function setOpen(isOpen){
+      topbar.classList.toggle('nav-open', isOpen);
+      toggle.setAttribute('aria-expanded', String(isOpen));
+      toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+    }
+
+    toggle.addEventListener('click', () => {
+      const isOpen = topbar.classList.contains('nav-open');
+      setOpen(!isOpen);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    });
+
+    nav.addEventListener('click', (e) => {
+      const a = e.target.closest('a');
+      if (a) setOpen(false);
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 920) setOpen(false);
+    });
+  })();
+</script>
+
 </body>
 </html>
