@@ -462,10 +462,10 @@
     background-color: rgba(255,255,255,.10);
   }
 
-  .topbar.nav-open .nav-toggle span,
-  .topbar.is-solid.nav-open .nav-toggle span{
-    background: rgb(0, 0, 0);
-  }
+/* bars stay white ONLY while still on hero (not solid yet) */
+.topbar.nav-open:not(.is-solid) .nav-toggle span{
+  background: rgba(255,255,255,.92);
+}
 }
     /* =========================
      HERO
