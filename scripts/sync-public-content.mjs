@@ -18,7 +18,7 @@ for (const page of pages) {
   html = html.replace(/mailto:[^"\s<]+/g, `mailto:${email}`);
   html = html.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, email);
   html = replaceOnce(html, /(<div class="footer-links">)([\s\S]*?)(<\/div>)/, (whole, start, links, end) => {
-    const clean = links.replace(/\s*<a\b[^>]*href="(?:\.\.\/|\/)?newsletter\/"[^>]*>[\s\S]*?<\/a>/g, '').trimEnd();
+    const clean = links.replace(/\s*<a\b[^>]*\bdata-site-mailing-list\b[^>]*>[\s\S]*?<\/a>/g, '').replace(/\s*<a\b[^>]*href="(?:\.\.\/|\/)?newsletter\/"[^>]*>[\s\S]*?<\/a>/g, '').trimEnd();
     const indent = /\n([ \t]+)<a/.exec(links)?.[1] || '        ';
     return `${start}${clean}\n${indent}<a href="${href}" data-site-mailing-list${page.startsWith('newsletter/') ? ' aria-current="page"' : ''}>${label}</a>\n${indent.slice(0, -2)}${end}`;
   }, page + ' footer');
