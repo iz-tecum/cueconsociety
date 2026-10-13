@@ -667,7 +667,7 @@
   .alumni-grid{
     margin-top: 46px;
     display:grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 30px;
     align-items: stretch;
   }
@@ -684,25 +684,32 @@
     align-items: center;
     justify-content: flex-start;
 
-    min-height: 500px;
+    min-height: 0;
   }
 
   .class-title{
-    margin: 0 0 26px;
+    margin: 0 0 10px;
     font-size: 22px;
     font-weight: 600;
     color: rgba(16,24,40,.92);
     letter-spacing: -0.01em;
   }
 
+  .class-note{
+    margin: 0 0 30px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(16,24,40,.72);
+  }
+
   .alumni-list{
     margin: 0;
     padding: 0;
     list-style: none;
-    display:flex;
-    flex-direction: column;
-    gap: 18px;
-    align-items: center;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+    gap: 30px 24px;
+    align-items: start;
     width: 100%;
   }
 
@@ -718,6 +725,13 @@
   .alumni-list a:hover{
     opacity: .88;
     border-color: rgba(16,24,40,.55);
+  }
+  .alumni-role{
+    display:block;
+    margin-top: 7px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(16,24,40,.72);
   }
 
 
@@ -920,16 +934,21 @@
             </div>
 
             <div class="alumni-grid" aria-label="Alumni by class year">
-              <div class="class-card">
-                <div class="class-title">Class of 2026</div>
+              <section class="class-card" aria-labelledby="class-2026">
+                <h3 class="class-title" id="class-2026">Class of 2026</h3>
+                <p class="class-note">First recorded class in this alumni directory.</p>
                 <ul class="alumni-list">
-                  <li><a href="" aria-label="Vince Smithangura">coming soon!</a></li>
+                  <li><a href="https://www.linkedin.com/in/joshua-park-829821260/" target="_blank" rel="noopener noreferrer">Joshua Park</a><span class="alumni-role">Former Co-President · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/jocelynvchu/" target="_blank" rel="noopener noreferrer">Jocelyn Chu</a><span class="alumni-role">Former Vice President · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/jacqueyang/" target="_blank" rel="noopener noreferrer">Jacqueline Yang</a><span class="alumni-role">Former Senior Advisor · BC</span></li>
+                  <li><a href="https://www.linkedin.com/in/elliereidenbach/" target="_blank" rel="noopener noreferrer">Ellie Reidenbach</a><span class="alumni-role">Former Senior Advisor · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/ishaansingh205/" target="_blank" rel="noopener noreferrer">Ishaan Singh</a><span class="alumni-role">Former Senior Advisor · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/justinburksjr/" target="_blank" rel="noopener noreferrer">Justin Burks Jr.</a><span class="alumni-role">Former Senior Advisor · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/renee-jiang7/" target="_blank" rel="noopener noreferrer">Renee Jiang</a><span class="alumni-role">Former Senior Advisor · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/siddharth-sundararajan-b1a269209/" target="_blank" rel="noopener noreferrer">Siddharth Sundararajan</a><span class="alumni-role">Former Senior Advisor · CC</span></li>
+                  <li><a href="https://www.linkedin.com/in/vinsonzhang04/" target="_blank" rel="noopener noreferrer">Vinson Zhang</a><span class="alumni-role">Former Senior Advisor · CC</span></li>
                 </ul>
-              </div>
-
-
-              <div class="class-card" aria-hidden="true" style="opacity:0; pointer-events:none;"></div>
-              <div class="class-card" aria-hidden="true" style="opacity:0; pointer-events:none;"></div>
+              </section>
             </div>
           </div>
         </div>
