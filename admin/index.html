@@ -25,8 +25,13 @@
 <section id="campaignPanel" aria-label="Campaign workspace" hidden>
 <div class="campaign-top"><div><h2>Draft</h2><p id="campaignAudience">Select subscribers in Audience.</p></div><div class="draft-actions"><label class="sr-only" for="draftList">Saved drafts</label><select id="draftList"><option value="">Saved drafts</option></select><button id="newDraft" class="quiet">New</button><button id="saveDraft">Save</button></div></div>
 <div class="composer"><div class="editor"><label>Subject<input id="subject" maxlength="200" placeholder="This week at CES"></label><label>Preview line<input id="preheader" maxlength="300" placeholder="A short preview"></label><label>Message<textarea id="body" rows="17" maxlength="50000" placeholder="Write your update…"></textarea></label><p class="helper">**bold** · ## heading · - list · [link](https://example.com)</p><div class="editor-meta"><span id="wordCount">0 words</span><span id="draftState">Unsaved draft</span></div></div><div class="preview"><div class="preview-title">PREVIEW</div><iframe title="Newsletter preview" id="preview" sandbox></iframe></div></div>
-<div class="prepare"><div><h2>Export campaign</h2><p>Sending is not connected.</p></div><button id="prepare">Prepare exports</button></div>
+<div class="prepare"><div><h2>Export campaign</h2><p>Download the draft and recipients.</p></div><button id="prepare">Prepare exports</button></div>
 <div id="exports" class="exports" hidden><p id="exportSummary"></p><div><button id="exportHTML" class="quiet">Email · HTML</button><button id="exportText" class="quiet">Email · text</button><button id="exportRecipientsCSV" class="quiet">Recipients · CSV</button><button id="exportRecipientsJSON" class="quiet">Recipients · JSON</button><button id="exportPackage" class="quiet">Campaign · JSON</button></div><p class="helper">Add individual unsubscribe links and recheck statuses before sending.</p></div>
+<section class="sending-controls" aria-label="Campaign sending">
+<div class="sending-heading"><div><h2>Sending</h2><p id="sendingStatus">Sending off · Google not connected</p><p id="sendingFrom" class="helper">From —</p></div><button id="checkSending" class="quiet" disabled>Check Google connection</button></div>
+<div class="sending-actions"><button id="stageCampaign" class="quiet">Stage campaign</button><label class="sr-only" for="stagedCampaigns">Staged campaigns</label><select id="stagedCampaigns"><option value="">Staged campaigns</option></select><button id="startSending" disabled>Start sending</button><button id="pauseSending" class="quiet" disabled>Pause</button></div>
+<p id="sendingProgress" class="helper" role="status">Stage saves a fixed copy. Sending requires Start and runs only while this page stays open.</p>
+</section>
 </section>
 <section id="inboxPanel" aria-label="Contact form inbox" hidden>
 <div class="inbox-top"><h2>Contact form messages</h2><button id="reloadMessages" class="quiet">Refresh inbox</button></div>

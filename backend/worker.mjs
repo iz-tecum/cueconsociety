@@ -1,4 +1,6 @@
 import { importRecords } from './import.mjs';
+import { handleSending, handleUnsubscribe, SendingError } from './send-queue.mjs';
+import { GmailError } from './gmail-adapter.mjs';
 
 const STATUSES = new Set(['subscribed', 'unsubscribed', 'cleaned', 'archived', 'pending']);
 const SUPPRESSED = new Set(['unsubscribed', 'cleaned', 'archived']);
@@ -260,11 +262,12 @@ async function updateStatus(body, env, now) {
   const changes = await env.DB.batch(statements);
   return response({ ok: true, updated: changes.slice(0, -1).reduce((total, result) => total + result.meta.changes, 0), updatedAt: at });
 }
-async function admin(request, env, now, url) {
+async function admin(request, env, now, url, gmailFetch) {
   const path = url.pathname;
   if (path === '/api/admin/login' && request.method === 'POST') return login(request, env, now);
   const write = !['GET', 'HEAD'].includes(request.method);
   const session = await authenticate(request, env, now, write);
+  if (path.startsWith('/api/admin/sending/')) return handleSending(request, env, { now, readJSON, fetchImpl: gmailFetch });
   if (path === '/api/admin/session' && request.method === 'GET') return response({ ok: true, email: session.email, csrfToken: session.csrfToken });
   if (path === '/api/admin/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(await sha256(session.token)).run();
@@ -312,12 +315,13 @@ async function admin(request, env, now, url) {
   fail('Not found.', 404);
 }
 
-export function createWorker({ clock = Date.now } = {}) {
+export function createWorker({ clock = Date.now, gmailFetch } = {}) {
   return { async fetch(request, env) {
     const url = new URL(request.url), now = clock();
     const isPublic = ['/api/newsletter', '/api/contact'].includes(url.pathname);
     let cors = {};
     try {
+      if (['/unsubscribe', '/api/unsubscribe'].includes(url.pathname)) return await handleUnsubscribe(request, env, now);
       if (isPublic) {
         const origin = publicOrigin(request, env);
         if (!origin) fail('This request is not allowed.', 403);
@@ -328,7 +332,7 @@ export function createWorker({ clock = Date.now } = {}) {
         for (const [name, value] of Object.entries(cors)) result.headers.set(name, value);
         return result;
       }
-      if (url.pathname.startsWith('/api/admin/')) return await admin(request, env, now, url);
+      if (url.pathname.startsWith('/api/admin/')) return await admin(request, env, now, url, gmailFetch);
       if (url.pathname.startsWith('/api/')) fail('Not found.', 404);
       if (!['GET', 'HEAD'].includes(request.method)) fail('Not found.', 404);
       if (!env.ASSETS) fail('Not found.', 404);
@@ -342,8 +346,9 @@ export function createWorker({ clock = Date.now } = {}) {
       }
       return new Response(result.body, { status: result.status, statusText: result.statusText, headers });
     } catch (error) {
-      const status = error instanceof HttpError ? error.status : 503;
-      return response({ ok: false, error: error instanceof HttpError ? error.message : 'Service is temporarily unavailable. Please try again later.' }, status, { ...cors, ...(status === 429 ? { 'Retry-After': '3600' } : {}) });
+      const known = error instanceof HttpError || error instanceof SendingError;
+      const status = known ? error.status : error instanceof GmailError ? 409 : 503;
+      return response({ ok: false, error: known ? error.message : error instanceof GmailError ? error.code : 'Service is temporarily unavailable. Please try again later.' }, status, { ...cors, ...(status === 429 ? { 'Retry-After': '3600' } : {}) });
     }
   } };
 }

@@ -9,6 +9,8 @@ const apiBase = configuredBase ? new URL(configuredBase, location.origin).origin
 let csrfToken = '', rows = [], drafts = [], selected = new Set(), page = 1;
 let audienceTime = '', draftId = '', dirty = false, prepared = false, busy = false, sessionEpoch = 0;
 let messages = [], messagesLoaded = false, selectedMessageId = '';
+let sendingStatus = null, stagedCampaigns = [], stagedCampaignId = '', sendingCampaign = null;
+let sendingBusy = false, sendingLoaded = false, dispatchTimer = null, dispatchEpoch = 0, dispatchCampaignId = '';
 const pageSize = 50;
 const number = value => Number(value).toLocaleString();
 const statusLabel = value => value === 'cleaned' ? 'Undeliverable' : value[0].toUpperCase() + value.slice(1);
@@ -25,15 +27,19 @@ function setBusy(value) {
   for (const id of ['reload', 'saveDraft', 'pause', 'unsubscribe', 'prepare', 'newDraft', 'draftList', 'subject', 'preheader', 'body', 'selectMatching', 'clearSelection']) $(id).disabled = value;
   for (const checkbox of $('contacts').querySelectorAll('input[type=checkbox]')) checkbox.disabled = value || checkbox.dataset.suppressed === 'true';
   if (!value) updateSelection();
+  renderSendingControls();
 }
 function showLogin(message = '') {
+  stopDispatch();
   sessionEpoch++;
   csrfToken = ''; rows = []; drafts = []; selected.clear(); draftId = ''; dirty = false;
   messages = []; messagesLoaded = false; selectedMessageId = '';
+  sendingStatus = null; stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; sendingLoaded = false;
   $('loginPanel').hidden = false; $('workspace').hidden = true; $('account').hidden = true;
   $('accountEmail').textContent = ''; $('loginPassword').value = ''; $('loginNotice').textContent = message;
   $('contacts').replaceChildren(); $('draftList').replaceChildren();
   $('messageList').replaceChildren(); $('messageDetail').replaceChildren();
+  $('stagedCampaigns').replaceChildren(); $('sendingProgress').textContent = ''; $('sendingFrom').textContent = 'From —';
   for (const id of ['subject', 'preheader', 'body']) $(id).value = '';
   $('preview').srcdoc = ''; hideExports();
 }
@@ -87,6 +93,7 @@ function updateSelection() {
   $('selectedCount').textContent = number(count) + ' recipients selected';
   $('campaignAudience').textContent = count ? number(count) + ' subscribers selected' : 'Select subscribers in Audience.';
   $('pause').disabled = $('unsubscribe').disabled = busy || !count;
+  renderSendingControls();
 }
 function render() {
   const counts = M.counts(rows);
@@ -155,6 +162,8 @@ function switchPanel(which) {
     const active = which === name; $(panel).hidden = !active; $(tab).classList.toggle('selected', active); $(tab).setAttribute('aria-pressed', String(active));
   }
   if (which === 'campaign') preview();
+  if (which === 'campaign' && !sendingLoaded) loadSending();
+  if (which !== 'campaign' && dispatchCampaignId) pauseDelivery();
   if (which === 'inbox' && !messagesLoaded) loadMessages();
 }
 function showMessage(id) {
@@ -227,6 +236,7 @@ async function saveDraft() {
     if (!saved.id) throw Error('The server did not confirm the saved draft. Refresh before trying again.');
     draftId = String(saved.id); dirty = false; $('draftState').textContent = 'Saved';
     await loadDrafts(); notice('Draft saved.');
+    return draftId;
   } catch (error) { notice(error.message, true); } finally { setBusy(false); }
 }
 async function chooseDraft(id) {
@@ -258,6 +268,140 @@ async function prepare() {
     prepared = true; $('exportSummary').textContent = number(recipients().length) + ' current subscribers. Nothing sent.'; $('exports').hidden = false; notice('Exports ready.');
   } catch (error) { notice(error.message, true); } finally { setBusy(false); }
 }
+function sendingNote(message) { $('sendingProgress').textContent = message; }
+function renderSendingControls() {
+  const active = Boolean(dispatchCampaignId), locked = busy || sendingBusy;
+  const ready = sendingStatus?.enabled === true && sendingStatus?.configured === true && sendingStatus?.available === true;
+  const status = sendingCampaign?.status;
+  $('stageCampaign').disabled = locked || active || !recipients().length;
+  $('stagedCampaigns').disabled = locked || active;
+  $('checkSending').disabled = locked || active || !sendingStatus?.configured;
+  $('startSending').disabled = locked || active || !ready || !stagedCampaignId || !['staged', 'paused', 'running'].includes(status);
+  $('pauseSending').disabled = sendingBusy || !(active || status === 'running');
+  if (!sendingStatus) return;
+  const state = sendingStatus.enabled ? (ready ? 'Ready' : 'Sending unavailable') : 'Sending off';
+  const connection = !sendingStatus.configured ? 'Google not connected' : sendingStatus.lastCheck ? 'Google connected' : 'Check Google connection';
+  $('sendingStatus').textContent = state + ' · ' + connection;
+  $('sendingFrom').textContent = 'From ' + (sendingStatus.from || '—');
+}
+function renderStagedCampaigns() {
+  $('stagedCampaigns').replaceChildren();
+  const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Staged campaigns'; $('stagedCampaigns').append(placeholder);
+  for (const campaign of stagedCampaigns) {
+    const option = document.createElement('option'); option.value = String(campaign.id);
+    option.textContent = (campaign.subject || 'Untitled') + ' · ' + number(campaign.recipientCount || 0) + ' · ' + campaign.status;
+    $('stagedCampaigns').append(option);
+  }
+  $('stagedCampaigns').value = stagedCampaignId; renderSendingControls();
+}
+function campaignProgress(data) {
+  const counts = data.counts || {};
+  return number(counts.sent || 0) + ' sent · ' + number(counts.skipped || 0) + ' skipped · ' + number(counts.needs_review || 0) + ' need review';
+}
+async function refreshSendingCampaign() {
+  if (!stagedCampaignId) { sendingCampaign = null; renderSendingControls(); return null; }
+  const data = await api('/api/admin/sending/campaigns/' + encodeURIComponent(stagedCampaignId));
+  sendingCampaign = data.campaign;
+  if (!sendingCampaign?.id) throw Error('Could not read the staged campaign.');
+  sendingNote(campaignProgress(data) + ' · ' + sendingCampaign.status); renderSendingControls(); return data;
+}
+async function loadSending() {
+  if (sendingBusy) return; sendingBusy = true; renderSendingControls();
+  try {
+    sendingStatus = await api('/api/admin/sending/status');
+    const data = await api('/api/admin/sending/campaigns'); stagedCampaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
+    sendingLoaded = true; renderStagedCampaigns();
+    if (stagedCampaignId) await refreshSendingCampaign();
+  } catch (error) { sendingNote(error.message); }
+  finally { sendingBusy = false; renderSendingControls(); }
+}
+async function checkSending() {
+  if (busy || sendingBusy || dispatchCampaignId || !sendingStatus?.configured) return;
+  sendingBusy = true; renderSendingControls();
+  try {
+    await api('/api/admin/sending/check', { method: 'POST', body: {} });
+    sendingStatus = await api('/api/admin/sending/status'); sendingNote('Google identity checked. Nothing sent.');
+  } catch (error) { sendingNote(error.message); }
+  finally { sendingBusy = false; renderSendingControls(); }
+}
+async function stageCampaign() {
+  if (busy || sendingBusy || dispatchCampaignId) return;
+  const current = draft();
+  if (!current.subject || !current.body || !current.recipientIds.length) return sendingNote('Add a subject, message and subscribers first.');
+  sendingBusy = true; renderSendingControls();
+  try {
+    const savedId = await saveDraft();
+    if (!savedId) return sendingNote('Save the draft successfully before staging.');
+    setBusy(true);
+    const data = await api('/api/admin/sending/campaigns', { method: 'POST', body: { draftId: savedId } });
+    if (!data.campaign?.id) throw Error('The server did not confirm staging. Refresh before trying again.');
+    sendingCampaign = data.campaign; stagedCampaignId = String(data.campaign.id);
+    const list = await api('/api/admin/sending/campaigns'); stagedCampaigns = Array.isArray(list.campaigns) ? list.campaigns : [];
+    renderStagedCampaigns(); sendingNote(number(sendingCampaign.recipientCount) + ' recipients staged. Nothing sent.');
+  } catch (error) { sendingNote(error.message); }
+  finally { sendingBusy = false; setBusy(false); }
+}
+function stopDispatch() {
+  dispatchEpoch++; if (dispatchTimer !== null) clearTimeout(dispatchTimer); dispatchTimer = null; dispatchCampaignId = ''; renderSendingControls();
+}
+async function pauseDelivery() {
+  const id = dispatchCampaignId || (sendingCampaign?.status === 'running' ? stagedCampaignId : '');
+  stopDispatch();
+  if (!id || !csrfToken) return;
+  sendingBusy = true; renderSendingControls();
+  try {
+    await api('/api/admin/sending/campaigns/' + encodeURIComponent(id) + '/pause', { method: 'POST', body: {} });
+    if (stagedCampaignId === id) await refreshSendingCampaign();
+    sendingNote('Paused. A request already in progress may finish.');
+  } catch (error) { sendingNote('Dispatch stopped here. ' + error.message); }
+  finally { sendingBusy = false; renderSendingControls(); }
+}
+function scheduleDispatch(id, epoch) {
+  if (epoch !== dispatchEpoch || dispatchCampaignId !== id) return;
+  dispatchTimer = setTimeout(async () => {
+    dispatchTimer = null;
+    if (epoch !== dispatchEpoch || dispatchCampaignId !== id) return;
+    try {
+      const data = await api('/api/admin/sending/dispatch', { method: 'POST', body: { campaignId: id } });
+      if (epoch !== dispatchEpoch || dispatchCampaignId !== id) return;
+      sendingCampaign = data.campaign || sendingCampaign;
+      sendingNote(campaignProgress(data) + ' · ' + String(data.result || 'unknown'));
+      if (!['sent', 'skipped'].includes(data.result) || data.campaign?.id !== id || data.campaign?.status !== 'running') {
+        const result = String(data.result || 'unknown'); stopDispatch();
+        sendingNote(campaignProgress(data) + ' · ' + (sendingCampaign?.status === 'completed' ? 'Completed.' : 'Stopped (' + result.replaceAll('_', ' ') + '). Review before restarting.'));
+        return;
+      }
+      renderSendingControls(); scheduleDispatch(id, epoch);
+    } catch (error) {
+      if (epoch !== dispatchEpoch) return;
+      stopDispatch(); sendingNote('Stopped. ' + error.message + ' Review status before restarting.');
+    }
+  }, 3100);
+}
+async function startSending() {
+  if (busy || sendingBusy || dispatchCampaignId || !stagedCampaignId) return;
+  const requestedEpoch = dispatchEpoch;
+  sendingBusy = true; renderSendingControls();
+  try {
+    sendingStatus = await api('/api/admin/sending/status'); await refreshSendingCampaign();
+    if (!sendingStatus.enabled || !sendingStatus.configured || !sendingStatus.available) return sendingNote('Sending is not available. Check the Google connection.');
+    if (!['staged', 'paused', 'running'].includes(sendingCampaign?.status)) return sendingNote('This campaign cannot be started.');
+    const id = stagedCampaignId, count = number(sendingCampaign.recipientCount || 0), from = sendingStatus.from;
+    if (!from) return sendingNote('A verified From address is required.');
+    if (!await ask('Start sending?', 'Send “' + (sendingCampaign.subject || 'this campaign') + '” to up to ' + count + ' recipients from ' + from + '? This sends email while this page is open.', 'Start sending')) return;
+    if (requestedEpoch !== dispatchEpoch || !csrfToken) return;
+    const data = await api('/api/admin/sending/campaigns/' + encodeURIComponent(id) + '/start', { method: 'POST', body: {} });
+    if (requestedEpoch !== dispatchEpoch || !csrfToken) {
+      if (csrfToken) await api('/api/admin/sending/campaigns/' + encodeURIComponent(id) + '/pause', { method: 'POST', body: {} });
+      return;
+    }
+    sendingCampaign = data.campaign || sendingCampaign;
+    if (sendingCampaign.status !== 'running') { const fresh = await refreshSendingCampaign(); if (fresh?.campaign?.status !== 'running') throw Error('The server did not confirm a running campaign.'); }
+    stopDispatch(); dispatchCampaignId = id; const epoch = dispatchEpoch;
+    sendingNote('Sending started. Keep this page open; Pause stops further requests.'); scheduleDispatch(id, epoch);
+  } catch (error) { stopDispatch(); sendingNote(error.message); }
+  finally { sendingBusy = false; renderSendingControls(); }
+}
 $('loginForm').addEventListener('submit', async event => {
   event.preventDefault(); $('loginButton').disabled = true; $('loginNotice').textContent = 'Signing in…';
   const email = $('loginEmail').value.trim(), password = $('loginPassword').value;
@@ -269,6 +413,7 @@ $('loginForm').addEventListener('submit', async event => {
 });
 $('logout').onclick = async () => {
   if (dirty && !await ask('Log out?', 'Unsaved draft changes will be lost.', 'Log out')) return;
+  await pauseDelivery();
   try { await api('/api/admin/logout', { method: 'POST', body: {} }); showLogin(); }
   catch (error) { notice('Could not log out. ' + error.message, true); }
 };
@@ -283,12 +428,22 @@ $('exportAllJSON').onclick = () => { if (rows.length) download('CES_Audience_' +
 $('exportAllCSV').onclick = () => { if (rows.length) download('CES_Audience_' + stamp() + '.csv', M.safeCSV(rows), 'text/csv;charset=utf-8'); };
 for (const id of ['subject', 'preheader', 'body']) $(id).addEventListener('input', () => { markDirty(); preview(); });
 $('saveDraft').onclick = saveDraft; $('newDraft').onclick = newDraft; $('draftList').onchange = () => chooseDraft($('draftList').value); $('prepare').onclick = prepare;
+$('stageCampaign').onclick = stageCampaign; $('checkSending').onclick = checkSending; $('startSending').onclick = startSending; $('pauseSending').onclick = pauseDelivery;
+$('stagedCampaigns').onchange = async () => {
+  if (busy || sendingBusy || dispatchCampaignId) return;
+  stagedCampaignId = $('stagedCampaigns').value; sendingCampaign = null; sendingBusy = true; renderSendingControls();
+  try { await refreshSendingCampaign(); } catch (error) { sendingNote(error.message); } finally { sendingBusy = false; renderSendingControls(); }
+};
 $('exportHTML').onclick = () => { if (ensurePrepared()) download('CES_Email_' + stamp() + '.html', M.campaignHTML(draft()), 'text/html;charset=utf-8'); };
 $('exportText').onclick = () => { if (ensurePrepared()) download('CES_Email_' + stamp() + '.txt', M.plainText(draft()), 'text/plain;charset=utf-8'); };
 $('exportRecipientsCSV').onclick = () => { if (ensurePrepared()) download('CES_Recipients_' + stamp() + '.csv', M.safeCSV(recipients()), 'text/csv;charset=utf-8'); };
 $('exportRecipientsJSON').onclick = () => { if (ensurePrepared()) download('CES_Recipients_' + stamp() + '.json', recipients()); };
 $('exportPackage').onclick = () => { if (ensurePrepared()) download('CES_Campaign_' + stamp() + '.json', { schema: 'ces-maildesk-campaign-v1', preparedAt: new Date().toISOString(), audienceUpdatedAt: audienceTime, ...draft(), html: M.campaignHTML(draft()), text: M.plainText(draft()), recipients: recipients(), delivery: 'Not sent. Add individual unsubscribe links and refresh statuses before sending.' }); };
 window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('pagehide', () => {
+  const id = dispatchCampaignId; stopDispatch();
+  if (id && csrfToken) fetch(apiBase + '/api/admin/sending/campaigns/' + encodeURIComponent(id) + '/pause', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, credentials: 'include', body: '{}', keepalive: true }).catch(() => {});
+});
 (async () => {
   $('loginButton').disabled = true; $('loginNotice').textContent = 'Checking session…';
   try { await enterSession(await api('/api/admin/session')); }

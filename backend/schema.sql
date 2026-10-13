@@ -45,3 +45,47 @@ CREATE TABLE IF NOT EXISTS audit (
   detail_json TEXT NOT NULL CHECK(json_valid(detail_json)),
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS send_campaigns (
+  id TEXT PRIMARY KEY,
+  snapshot_key TEXT NOT NULL UNIQUE,
+  draft_id TEXT NOT NULL,
+  snapshot_json TEXT NOT NULL CHECK(json_valid(snapshot_json)),
+  from_email TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('staged','running','paused','completed')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  approved_at TEXT
+);
+CREATE TABLE IF NOT EXISTS send_jobs (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT NOT NULL REFERENCES send_campaigns(id),
+  contact_id TEXT NOT NULL REFERENCES contacts(id),
+  recipient_email TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('prepared','queued','processing','sent','skipped','retry','needs_review','failed')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at INTEGER NOT NULL DEFAULT 0,
+  lease_id TEXT,
+  lease_until INTEGER,
+  message_id TEXT NOT NULL,
+  provider_id TEXT,
+  last_error TEXT,
+  updated_at TEXT NOT NULL,
+  UNIQUE(campaign_id,contact_id)
+);
+CREATE INDEX IF NOT EXISTS send_jobs_ready ON send_jobs(campaign_id,status,next_attempt_at);
+CREATE TABLE IF NOT EXISTS send_budget (
+  id TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL REFERENCES send_jobs(id),
+  attempted_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS send_budget_time ON send_budget(attempted_at);
+CREATE TABLE IF NOT EXISTS send_control (
+  id TEXT PRIMARY KEY,
+  lease_id TEXT,
+  lease_until INTEGER NOT NULL DEFAULT 0,
+  next_send_at INTEGER NOT NULL DEFAULT 0,
+  verified_principal TEXT,
+  verified_from TEXT,
+  verified_at TEXT
+);
+INSERT OR IGNORE INTO send_control(id) VALUES('gmail');
