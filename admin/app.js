@@ -14,7 +14,7 @@ let sendingBusy = false, sendingLoaded = false, dispatchTimer = null, dispatchEp
 let verificationTimer = null;
 let stagedPreview = null, renderedEmail = '';
 const emailPreview = $('preview').attachShadow({ mode: 'open' });
-emailPreview.addEventListener('click', event => { if (event.target.closest?.('a')) event.preventDefault(); });
+emailPreview.addEventListener('click', event => { const link = event.target.closest?.('a'); if (link && link.target !== '_blank') event.preventDefault(); });
 const returnParams = new URLSearchParams(location.search);
 let googleReturn = ['connected', 'error'].includes(returnParams.get('google')) ? returnParams.get('google') : '';
 const googleErrorMessages = new Map([
@@ -332,15 +332,15 @@ async function exampleDraft() {
   if (busy || sendingBusy || dispatchCampaignId || (dirty && !await ask('Use example?', 'This replaces the unsaved text. Your recipient selection stays the same.', 'Use example'))) return;
   draftId = ''; $('subject').value = 'Example · This week at CES';
   $('preheader').value = 'Events and opportunities';
-  $('body').value = '## Next event\n\n[Event title]\n\n> [Day] · [Time]\n> [Location]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\n---\n\n## Opportunities\n\n- [Opportunity] — [deadline]\n- [Application link or next step]\n\nBest,\nCES';
+  $('body').value = '## Next event\n\n[Event title]\n\n> [Day] · [Time]\n> [Location]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\n---\n\n## Opportunities\n\n- [Opportunity] — [deadline]\n- [Application link or next step]\n\nBest,\nExecutive Board';
   if ($('exampleFormat').value === 'event') {
     $('subject').value = 'Example · [Event title]';
     $('preheader').value = 'Event details';
-    $('body').value = '> Who: [Audience]\n> When: [Day] · [Time] ET\n> Where: [Location]\n> Deadline: [Date]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\nBest,\nCES';
+    $('body').value = '> Who: [Audience]\n> When: [Day] · [Time] ET\n> Where: [Location]\n> Deadline: [Date]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\nBest,\nExecutive Board';
   } else if ($('exampleFormat').value === 'opportunity') {
     $('subject').value = 'Example · [Opportunity title]';
     $('preheader').value = 'Who can apply and how';
-    $('body').value = '> Who: [Audience]\n> Deadline: [Date]\n> Format: [In person / online]\n\n[One sentence on the opportunity and next step.]\n\n[View CES](https://cueconsociety.com/)\n\nBest,\nCES';
+    $('body').value = '> Who: [Audience]\n> Deadline: [Date]\n> Format: [In person / online]\n\n[One sentence on the opportunity and next step.]\n\n[View CES](https://cueconsociety.com/)\n\nBest,\nExecutive Board';
   }
   markDirty(); renderDraftList(); preview(); $('draftState').textContent = 'Example · not saved';
 }
