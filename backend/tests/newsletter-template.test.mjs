@@ -23,7 +23,13 @@ test('all draft and identity text is escaped; markup allows only safe HTTPS link
   const attack = '</title><img src=x onerror="alert(1)"><script>alert(1)</script>';
   const html = template.renderEmailHTML({ subject: attack, preheader: attack, body: attack + '\n\n[bad](javascript:alert(1)) [http](http://example.org/) [user](https://user:password@example.org/) [good](https://example.org/?a=1&b=2)' }, { recipientEmail: attack, fromEmail: attack, unsubscribeUrl: 'javascript:alert(1)' });
   assert.doesNotMatch(html, /<script|<img src=x|href="javascript:|href="http:|href="https:\/\/user:password/i);
-  assert.equal((html.match(/<img /g) || []).length, 1);
+  const images = [...html.matchAll(/<img\b[^>]*\bsrc="([^"]+)"/g)].map(match => new URL(match[1]));
+  assert.ok(images.length >= 1);
+  for (const image of images) {
+    assert.equal(image.origin, 'https://admin.cueconsociety.com');
+    assert.ok(image.pathname.startsWith('/admin/assets/'));
+    assert.equal(image.search, ''); assert.equal(image.hash, '');
+  }
   assert.match(html, /&lt;\/title&gt;&lt;img/);
   assert.match(html, /href="https:\/\/example\.org\/\?a=1&amp;b=2"/);
   assert.ok(html.includes('<span>Unsubscribe</span>'));
@@ -37,7 +43,7 @@ test('preview has no invented unsubscribe token; delivery renders its exact sign
   const delivered = template.renderEmailHTML(draft, { unsubscribeUrl: link, recipientEmail: 'reader@example.org', fromEmail: 'student@columbia.edu' });
   assert.ok(delivered.includes('href="' + link.replaceAll('&', '&amp;') + '"'));
   assert.match(delivered, /Sent to reader@example\.org/);
-  assert.match(delivered, /From student@columbia\.edu/);
+  assert.doesNotMatch(delivered, /From student@columbia\.edu|Columbia University/);
 });
 
 test('body formatting preserves headings, lists, bold, line breaks and Unicode as text', () => {
@@ -116,10 +122,12 @@ test('actual MIME matches the refined preview and readable plain text with indiv
   const campaign = { snapshot_json: JSON.stringify(snapshot), from_email: 'sender@columbia.edu' };
   const job = { id: 'a'.repeat(32), contact_id: 'b'.repeat(64), recipient_email: 'reader@example.org', message_id: '<ces.test-message@cueconsociety.com>' };
   const message = Buffer.from(await renderMessage(env, campaign, job, 0), 'base64url').toString();
+  assert.match(message, /^From: Columbia Economics Society <sender@columbia\.edu>\r?$/m);
   const part = type => Buffer.from(message.split('Content-Type: text/' + type + '; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n')[1].split('\r\n--')[0].replace(/\r\n/g, ''), 'base64').toString();
   const links = await unsubscribeLinks(env, job.contact_id);
   assert.equal(part('html'), template.renderEmailHTML(snapshot, { unsubscribeUrl: links.page, recipientEmail: job.recipient_email, fromEmail: campaign.from_email }));
   assert.ok(part('plain').includes(template.renderBodyText(snapshot.body)));
   assert.ok(part('plain').includes(links.page));
+  assert.doesNotMatch(part('plain'), /Columbia University|From sender@columbia\.edu/);
   assert.doesNotMatch(part('plain'), /^>|^---|^## /m);
 });

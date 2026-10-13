@@ -1,6 +1,6 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.CESNewsletter=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
-const logoURL='https://admin.cueconsociety.com/admin/assets/ceslogo.png';
+const assetRoot='https://admin.cueconsociety.com/admin/assets/';
 const font='Arial, Helvetica, sans-serif';
 const navy='#0b1220', blue='#dbf2ff';
 const escape=value=>String(value??'').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
@@ -37,25 +37,24 @@ function renderEmailHTML(draft={},options={}){
   const preheader=escape(draft.preheader||'');
   const unsubscribe=safeURL(options.unsubscribeUrl);
   const recipient=options.recipientEmail?'<br>Sent to '+escape(options.recipientEmail):'';
-  const sender=options.fromEmail?'<br>From '+escape(options.fromEmail):'';
   const unsubscribeHTML=unsubscribe?'<a href="'+escape(unsubscribe)+'" style="color:'+navy+';text-decoration:underline;" rel="noreferrer noopener">Unsubscribe</a>':'<span>Unsubscribe</span>';
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+subject+'</title></head>'+
     '<body style="margin:0;padding:0;background-color:#f3f6f8;color:'+navy+';font-family:'+font+';">'+
     (preheader?'<div aria-hidden="true" style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">'+preheader+'</div>':'')+
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f3f6f8" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:24px 10px;">'+
     '<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;border-collapse:collapse;">'+
-    '<tr><td style="padding:22px 28px;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;"><tr>'+
-    '<td width="58" valign="middle" style="width:58px;padding-right:14px;"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+logoURL+'" width="44" height="51" alt="CES" style="display:block;width:44px;height:51px;border:0;"></a></td>'+
-    '<td valign="middle" style="font-family:'+font+';font-size:14px;line-height:1.35;font-weight:700;letter-spacing:1px;color:'+navy+';">COLUMBIA<br>ECONOMICS SOCIETY</td></tr></table></td></tr>'+
-    '<tr><td height="3" bgcolor="'+navy+'" style="height:3px;font-size:0;line-height:0;background-color:'+navy+';">&nbsp;</td></tr>'+
-    '<tr><td height="4" bgcolor="#ffffff" style="height:4px;font-size:0;line-height:0;">&nbsp;</td></tr>'+
-    '<tr><td height="1" bgcolor="'+navy+'" style="height:1px;font-size:0;line-height:0;background-color:'+navy+';">&nbsp;</td></tr>'+
-    '<tr><td bgcolor="'+blue+'" style="padding:30px 28px 28px;background-color:'+blue+';">'+
+    '<tr><td bgcolor="'+navy+'" style="padding:23px 28px;background-color:'+navy+';"><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;"><tr>'+
+    '<td width="64" valign="middle" style="width:64px;padding-right:19px;"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+assetRoot+'ceslogo.png" width="54" height="63" alt="CES" style="display:block;width:54px;height:63px;border:0;"></a></td>'+
+    '<td valign="middle"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+assetRoot+'email-wordmark.png" width="178" height="83" alt="Columbia Economics Society" style="display:block;width:178px;max-width:100%;height:auto;border:0;color:#ffffff;font-family:Georgia, Times New Roman, serif;font-size:17px;"></a></td></tr></table></td></tr>'+
+    '<tr><td height="1" bgcolor="#b8d3e3" style="height:1px;font-size:0;line-height:0;background-color:#b8d3e3;">&nbsp;</td></tr>'+
+    '<tr><td bgcolor="'+blue+'" style="padding:28px 28px 0;background-color:'+blue+';">'+
     '<h1 style="margin:0;font-family:'+font+';font-size:32px;line-height:1.12;font-weight:700;letter-spacing:-0.5px;color:'+navy+';word-break:break-word;">'+subject+'</h1>'+
     (preheader?'<p style="margin:16px 0 0;font-family:'+font+';font-size:16px;line-height:1.5;color:#26445b;">'+preheader+'</p>':'')+'</td></tr>'+
-    '<tr><td style="padding:12px 28px 16px;font-family:'+font+';font-size:16px;line-height:1.65;color:'+navy+';word-break:break-word;">'+renderBodyHTML(draft.body)+'</td></tr>'+
-    '<tr><td bgcolor="#f3f8fb" style="padding:22px 28px;background-color:#f3f8fb;border-top:1px solid #b8d3e3;font-family:'+font+';font-size:12px;line-height:1.7;color:'+navy+';">'+
-    '<strong>Columbia Economics Society</strong><br>Columbia University<br><a href="https://cueconsociety.com/" style="color:'+navy+';text-decoration:underline;">cueconsociety.com</a>'+recipient+sender+'<br>'+unsubscribeHTML+'</td></tr>'+
+    '<tr><td bgcolor="'+blue+'" style="padding:0;background-color:'+blue+';"><img src="'+assetRoot+'email-banner-art.png" width="600" height="80" alt="" role="presentation" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'+
+    '<tr><td style="padding:26px 28px 16px;font-family:'+font+';font-size:16px;line-height:1.65;color:'+navy+';word-break:break-word;">'+renderBodyHTML(draft.body)+'</td></tr>'+
+    '<tr><td bgcolor="#f3f8fb" style="padding:0;background-color:#f3f8fb;"><img src="'+assetRoot+'email-footer-art.png" width="600" height="42" alt="" role="presentation" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'+
+    '<tr><td bgcolor="#f3f8fb" style="padding:0 28px 22px;background-color:#f3f8fb;font-family:'+font+';font-size:12px;line-height:1.7;color:'+navy+';">'+
+    '<strong>Columbia Economics Society</strong><br><a href="https://cueconsociety.com/" style="color:'+navy+';text-decoration:underline;">cueconsociety.com</a>'+recipient+'<br>'+unsubscribeHTML+'</td></tr>'+
     '</table></td></tr></table></body></html>';
 }
 return {renderEmailHTML,renderBodyHTML,renderBodyText};

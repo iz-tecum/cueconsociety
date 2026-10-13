@@ -1,0 +1,7 @@
+CES email branding — 2026-10-13
+
+ceslogo.png is the unchanged original CES website logo.
+email-wordmark.png is the original transparent white three-line wordmark extracted from page 1 of CES_2026-2027_Sponsorship_Prospectus.pdf (PDF image X23, 444 x 206 pixels). Its typography is raster artwork; no exact font family is claimed. Use only in the top masthead on navy. All body text remains Arial/Helvetica for email compatibility.
+email-banner-art.png and email-footer-art.png are original abstract curve-and-grid linework created for CES, at 2x display resolution. They are decorative, contain no text or data, and use the existing light blue/navy palette. They have empty alt text; essential message content stays live HTML.
+
+Images are served from the public admin/assets path; audience data and sender credentials are never included in them. The actual From header remains visible in mail clients. The HTML/plain-text footer omits the university line and decorative sender address, while retaining individual unsubscribe controls.

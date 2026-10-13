@@ -211,7 +211,7 @@ test('actual MIME preserves safe preview formatting, individual recipients and f
   const links = await unsubscribeLinks(env, job.contact_id);
   assert.equal(html, preview.renderEmailHTML(JSON.parse(campaign.snapshot_json), { unsubscribeUrl: links.page, recipientEmail: job.recipient_email, fromEmail: campaign.from_email }));
   assert.ok(html.includes(links.page.replaceAll('&', '&amp;')));
-  assert.ok(html.includes('https://admin.cueconsociety.com/admin/assets/ceslogo.png'));
+  assert.ok(html.includes('https://admin.cueconsociety.com/admin/assets/email-wordmark.png'));
 });
 
 test('all sending actions inherit login, exact Origin and CSRF checks', async t => {
