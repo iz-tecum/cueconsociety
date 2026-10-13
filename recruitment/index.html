@@ -19,9 +19,6 @@
       background:transparent;
     }
 
-    /* =========================
-       GLOBAL LINKS (same system)
-       ========================= */
     a{
       color: inherit;
       text-decoration: none;
@@ -30,7 +27,7 @@
     a:hover{ opacity: .82; }
 
     :root{
-      /* NAVBAR */
+
       --nav-solid-bg: rgba(219, 242, 255, 0.96);
       --nav-solid-border: rgba(16, 24, 40, 0.12);
       --nav-solid-text: rgba(0, 0, 0, 0.9);
@@ -40,7 +37,6 @@
       --nav-transition-ms: 420ms;
       --nav-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
-      /* HERO */
       --hero-h: 75vh;
       --hero-min-h: 20vh;
       --hero-blur: 7px;
@@ -56,26 +52,19 @@
       --hero-hover-ms: 1000ms;
       --hero-interval-ms: 5200ms;
 
-      /* LAYOUT */
       --padX: 28px;
 
-      /* IMAGE HOVERS */
       --grid-scale: 1.065;
       --grid-hover-ms: 420ms;
 
-      /* CARD LOOK */
       --card-bg: rgb(245,245,245);
       --card-radius: 0px;
 
-      /* reserve space for floating logo */
       --logo-w: 54px;
       --logo-h: 58px;
       --logo-gap: 18px;
     }
 
-  /* =========================
-     TOP NAV
-     ========================= */
   .topbar{
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -124,7 +113,6 @@
     color: var(--nav-hero-text);
   }
 
-  /* ✅ FIX: desktop row spacing lives on nav-links (since links are wrapped) */
   .nav .nav-links{
     display:flex;
     align-items:center;
@@ -144,7 +132,6 @@
   }
   .nav a:hover{ opacity: .85; }
 
-  /* dropdown */
   .drop{
     position: relative;
     display: inline-flex;
@@ -279,9 +266,6 @@
     .recruit{ padding: 10px 14px !important; }
   }
 
-/* =========================
-   MOBILE NAV TOGGLE
-   ========================= */
 .nav-toggle{
   display: none;
   margin-left: auto;
@@ -313,7 +297,6 @@
 @media (max-width: 920px){
   .nav-toggle{ display: inline-flex; }
 
-  /* hide desktop row; use dropdown container under the bar */
   .nav{
     position: absolute;
     left: 0;
@@ -337,10 +320,9 @@
     transform: translateY(0);
   }
 
-  /* panel */
   .nav .nav-links{
     width: min(520px, calc(100vw - (2 * var(--padX))));
-    margin: 0 auto; /* centered under topbar */
+    margin: 0 auto;
     background: rgba(16,24,40,.92);
     border: 1px solid rgba(255,255,255,.10);
     box-shadow: 0 14px 30px rgba(16,24,40,.18);
@@ -352,7 +334,6 @@
     white-space: normal;
   }
 
-  /* rows */
   .nav a,
   .drop > button{
     width: 100%;
@@ -369,7 +350,6 @@
     margin-left: 0 !important;
   }
 
-  /* hamburger -> X */
   .topbar.nav-open .nav-toggle span:nth-child(1){
     transform: translateY(8px) rotate(45deg);
   }
@@ -380,7 +360,6 @@
     transform: translateY(-8px) rotate(-45deg);
   }
 
-  /* MOBILE: dropdown opens on tap (focus) */
   .drop{
     width: 100%;
     display: flex;
@@ -436,10 +415,6 @@
 
   .drop::after{ display: none; }
 
-  /* =========================
-     FIX: keep mobile dropdown text WHITE when menu is open
-     (prevents .is-solid turning it dark)
-     ========================= */
   .topbar.nav-open .nav,
   .topbar.is-solid.nav-open .nav{
     color: rgba(255,255,255,.92);
@@ -462,22 +437,18 @@
     background-color: rgba(255,255,255,.10);
   }
 
-/* bars stay white ONLY while still on hero (not solid yet) */
 .topbar.nav-open:not(.is-solid) .nav-toggle span{
   background: rgba(255,255,255,.92);
 }
 }
 
-/* =========================
-     HERO
-     ========================= */
   .hero{
     position: relative;
     height: var(--hero-h);
     min-height: var(--hero-min-h);
     overflow: hidden;
     padding-top: 70px;
-    background: transparent; /* ✅ FIX: stays black while images load */
+    background: transparent;
   }
   .hero-bg{
     position:absolute;
@@ -564,17 +535,11 @@
     border-bottom-color: rgba(255,255,255,.40);
   }
 
-    /* =========================
-       PAGE CLIP
-       ========================= */
     .page-clip{ overflow-x: clip; }
     @supports not (overflow-x: clip){
       .page-clip{ overflow-x: hidden; }
     }
 
-    /* =========================
-       SECTION + WRAP
-       ========================= */
     .section{
       padding: 74px var(--padX);
       background:#fff;
@@ -584,9 +549,6 @@
       margin: 0 auto;
     }
 
-    /* =========================
-       RECRUITMENT LAYOUT (same as FAQ/Alumni)
-       ========================= */
     .recruit-layout{
       display:flex;
       align-items:flex-start;
@@ -626,9 +588,6 @@
     }
     .side-photo:hover::before{ transform: scale(var(--grid-scale)); }
 
-    /* =========================
-       TITLE + STACK (same rhythm)
-       ========================= */
     .block-title{
       margin: 40px 0 -28px;
       text-align:center;
@@ -638,17 +597,16 @@
       color: rgba(16,24,40,.92);
     }
 
-    /* MAIN KNOB: move everything under title together */
     .events-stack{
       width: min(1200px, 100%);
-      margin: 0 auto;  /* centers under title */
-      transform: none; /* no right shift */
+      margin: 0 auto;
+      transform: none;
     }
 
     .recruit-card{
       border: 0px solid rgba(16,24,40,.10);
       border-radius: var(--card-radius);
-      padding: 50px 34px 20px; /* keeps the “Our Alumni” spacing feel */
+      padding: 50px 34px 20px;
       text-align:center;
       background: transparent;
     }
@@ -668,9 +626,6 @@
     }
     .recruit-text a:hover{ border-color: rgba(16,24,40,.12); opacity: .82; }
 
-    /* =========================
-       SECTIONS (GETTING INVOLVED / IMPORTANT DATES)
-       ========================= */
     .recruit-section{
       margin-top: 44px;
       text-align: center;
@@ -699,9 +654,6 @@
       opacity: .7;
     }
 
-    /* =========================
-       FOOTER (same system)
-       ========================= */
     .footer{
       padding: 64px var(--padX);
       background: #fff;
@@ -759,10 +711,6 @@
     letter-spacing: .02em;
   }
 
-    /* =========================
-       PAGE LOAD + SCROLL REVEAL
-       (match CES preload style system)
-       ========================= */
     body.preload .hero-bg{ opacity: 1 !important; }
     body.preload .hero-inner > div{ opacity: 1; transform: translateY(10px); }
     body.preload .hero-socials{ opacity: 1; transform: translateY(10px); }
@@ -790,9 +738,6 @@
       transform: translateY(0);
     }
 
-    /* =========================
-       RESPONSIVE
-       ========================= */
     @media (max-width: 1680px){
       .recruit-side{ width: 320px; flex-basis: 320px; }
       .side-photo{ height: 740px; }
@@ -826,17 +771,18 @@
       .topbar-inner{ padding-left: calc(var(--padX) + var(--logo-w) + var(--logo-gap)); }
     }
   </style>
+  <link rel="stylesheet" href="../assets/site.css">
 </head>
 
 <body class="preload">
-  <!-- NAV -->
+<a class="skip-link" href="#main-content">Skip to content</a>
+
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <a class="brand brand-float" href="../index.html" aria-label="Home">
       <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
     </a>
 
-    <!-- MOBILE TOGGLE (hamburger) -->
     <button class="nav-toggle"
             type="button"
             aria-label="Open menu"
@@ -854,21 +800,22 @@
           <div class="menu" role="menu" aria-label="About menu">
             <a href="../about/index.html" role="menuitem">ABOUT</a>
             <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
+            <a href="../faq/index.html" role="menuitem">FAQ</a>
           </div>
         </div>
 
         <a href="../events/index.html">EVENTS</a>
         <a href="../alumni/index.html">ALUMNI</a>
-        <a href="../faq/index.html">FAQ</a>
-        <a href="../contact/index.html">CONTACT</a>
-        <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
+                <a href="../contact/index.html">CONTACT</a>
+        <a href="../recruitment/index.html" aria-current="page">RECRUITMENT</a>
+        <a class="recruit" href="../newsletter/index.html">JOIN MAILING LIST</a>
       </div>
     </nav>
   </div>
 </header>
 
-  <main class="page-clip">
-    <!-- HERO -->
+  <main class="page-clip" id="main-content" tabindex="-1">
+
     <section class="hero" id="hero">
       <div class="hero-bg" id="bgA"></div>
       <div class="hero-bg" id="bgB"></div>
@@ -890,37 +837,31 @@
     </section>
   </main>
 
-  <!-- MAIN -->
   <section class="section reveal" id="recruitment">
     <div class="wrap">
       <div class="recruit-layout">
 
-        <!-- LEFT -->
         <div class="recruit-main">
           <h2 class="block-title">Getting Involved</h2>
 
           <div class="recruit-stack">
             <div class="recruit-card">
-              <p class="recruit-text">Each fall, CES accepts new applicants. The application process involves a written application and two rounds of interviews. We look for candidates that have an interest in investing and a strong desire to learn. No prior experience is necessary. While real world experience is certainly a plus, we recognize that many students do not have exposure to the financial services industry. As such, CES accepts many students without prior investment experience or knowledge. Naturally, the process is competitive. Each year we accept about 12 applicants from a pool of over 200 applicants, and we encourage all current Columbia or Barnard students to apply.</p>
+              <p class="recruit-text">CES brings together students interested in economics, banking, business, and consulting. General Body members can attend events and stay involved through our mailing list. Division Representatives support event planning, outreach, and day-to-day operations. We welcome students across Columbia and Barnard; prior finance experience is not required.</p>
             </div>
 
             <div class="recruit-section" aria-label="Getting involved">
-              <p class="recruit-section-body">For inquiries pertaining to the recruitment process, contact our board members
-<a href="mailto:jvc2142@columbia.edu">Jocelyn Chu</a> (<a href="mailto:jvc2142@columbia.edu">jvc2142@columbia.edu</a>),
-<a href="mailto:jp4346@columbia.edu">Joshua Park</a> (<a href="mailto:jp4346@columbia.edu">jp4346@columbia.edu</a>), and
-<a href="mailto:nzh2107@columbia.edu">Nicole Huang</a> (<a href="mailto:nzh2107@columbia.edu">nzh2107@columbia.edu</a>)</p>
+              <p class="recruit-section-body">For recruitment questions, contact the 2026–27 board at <a class="text-link" href="mailto:econboard@columbia.edu">econboard@columbia.edu</a>.</p>
             </div>
 
             <hr class="recruit-divider" />
 
             <div class="recruit-section" aria-label="Important dates">
-              <div class="recruit-section-title">Important Dates</div>
-              <p class="recruit-section-body">Applications for the 2025-2026 year have now closed.</p>
+              <div class="recruit-section-title">Stay in the loop</div>
+              <p class="recruit-section-body"><a class="text-link" href="../newsletter/index.html">Join the mailing list</a> for upcoming events and recruitment announcements. You can also <a class="text-link" href="../leadership/index.html">meet our 2026–27 board</a>.</p>
             </div>
           </div>
         </div>
 
-        <!-- RIGHT -->
         <aside class="recruit-side" aria-label="Campus photo">
           <div class="side-photo" style="--img:url('../verticals/im2.jpg');"></div>
         </aside>
@@ -929,19 +870,19 @@
     </div>
   </section>
 
-<!-- FOOTER -->
 <footer class="footer reveal" id="contact">
   <div class="footer-inner">
     <div class="footer-left">
       <h4>Columbia Economics Society</h4>
       <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
-      <div class="line">70 Morningside Drive</div>
+      <div class="line">Columbia University</div>
       <div class="line">New York, NY 10027</div>
     </div>
 
     <div class="footer-right">
-      <h4>Follow Us</h4>
+      <h4>Stay connected</h4>
       <div class="footer-links">
+        <a class="newsletter-link" href="../newsletter/index.html">Join the mailing list</a>
         <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
         <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
         <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
@@ -956,9 +897,7 @@
 </footer>
 
   <script>
-    // =========================
-    // NAV: transparent on hero, solid after scroll
-    // =========================
+
     const topbar = document.getElementById("topbar");
     const heroEl = document.getElementById("hero");
     function setNavState(){
@@ -970,15 +909,8 @@
     window.addEventListener("resize", setNavState);
     setNavState();
 
-  // =========================
-  // YEAR
-  // =========================
   document.getElementById("year").textContent = new Date().getFullYear();
 
-
-    // =========================
-    // HERO SLIDESHOW (fast first-paint fix)
-    // =========================
     const slides = [
       "../horizontals/im2.jpg",
       "../horizontals/im6.jpg",
@@ -1053,15 +985,10 @@
 
     document.addEventListener("DOMContentLoaded", bootHero);
 
-    // =========================
-    // COPYRIGHT YEAR
-    // =========================
+
     const y = document.getElementById("copyrightYear");
     if (y) y.textContent = new Date().getFullYear();
 
-    // =========================
-    // SCROLL REVEAL
-    // =========================
     const revealEls = document.querySelectorAll(".reveal");
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });

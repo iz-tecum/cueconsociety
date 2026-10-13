@@ -1,4 +1,4 @@
-// /api/contact.js  (Vercel Serverless Function - CommonJS)
+
 
 function escapeHtml(s = "") {
   return String(s)
@@ -10,20 +10,20 @@ function escapeHtml(s = "") {
 }
 
 module.exports = async (req, res) => {
-  // ✅ CORS (run before any returns)
+
   const allowedOrigins = new Set([
-    "https://iz-tecum.github.io",     // GitHub Pages origin
-    "https://cueconsociety.vercel.app" // Stable Vercel domain
+    "https://iz-tecum.github.io",
+    "https://cueconsociety.vercel.app",
+    "https://www.cueconsociety.com",
+    "https://cueconsociety.com"
   ]);
 
   const origin = req.headers.origin;
 
-  // Always emit CORS headers (even on errors), so browser doesn't show "Failed to fetch"
   if (origin && allowedOrigins.has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   } else {
-    // If origin is missing (server-to-server) or unrecognized, don't reflect it.
-    // We still set something so browser gets a readable response.
+
     res.setHeader("Access-Control-Allow-Origin", "https://iz-tecum.github.io");
   }
 
@@ -32,10 +32,8 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
   res.setHeader("Cache-Control", "no-store");
 
-  // ✅ Preflight
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  // If a browser origin is present and not allowed, return 403 *with CORS headers already set*
   if (origin && !allowedOrigins.has(origin)) {
     return res.status(403).json({ error: "Origin not allowed", origin });
   }
@@ -53,7 +51,6 @@ module.exports = async (req, res) => {
     });
   }
 
-  // Vercel may give req.body as object; sometimes as string
   let body = req.body;
   if (typeof body === "string") {
     try {
@@ -68,15 +65,13 @@ module.exports = async (req, res) => {
     email = "",
     subject = "",
     message = "",
-    company = "", // honeypot
+    company = "",
   } = body || {};
 
-  // Honeypot: if bots fill it, silently succeed
   if (String(company).trim().length > 0) {
     return res.status(200).json({ ok: true });
   }
 
-  // Basic validation
   if (
     !String(name).trim() ||
     !String(email).trim() ||

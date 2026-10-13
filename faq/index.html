@@ -20,9 +20,6 @@
       background:transparent;
     }
 
-    /* =========
-       GLOBAL LINKS (match About/Events)
-       ========= */
     a{
       color: inherit;
       text-decoration: none;
@@ -30,14 +27,12 @@
     }
     a:hover{ text-decoration:none; opacity: .85; }
 
-    /* accessibility focus (match About/Events) */
     a:focus-visible,
     button:focus-visible{
       outline: 3px solid rgba(16,24,40,.35);
       outline-offset: 3px;
     }
 
-    /* keep “underline links” crisp but still responsive on hover */
     .hero-socials a,
     .footer-left a,
     .footer-links a{
@@ -51,7 +46,7 @@
     }
 
     :root{
-      /* NAVBAR */
+
       --nav-solid-bg: rgba(219, 242, 255, 0.96);
       --nav-solid-border: rgba(16, 24, 40, 0.12);
       --nav-solid-text: rgba(0, 0, 0, 0.9);
@@ -61,7 +56,6 @@
       --nav-transition-ms: 420ms;
       --nav-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
-      /* HERO */
       --hero-h: 75vh;
       --hero-min-h: 20vh;
       --hero-blur: 7px;
@@ -72,32 +66,24 @@
       --hero-dim-top: 0.00;
       --hero-dim-bottom: 0.00;
 
-      /* MATCH About/Events */
       --hero-ease: cubic-bezier(0.22, 0, 0.36, 1);
       --hero-fade-ms: 1200ms;
       --hero-hover-ms: 1000ms;
       --hero-interval-ms: 5200ms;
 
-      /* LAYOUT */
       --padX: 28px;
 
-      /* IMAGE HOVERS */
       --grid-scale: 1.065;
       --grid-hover-ms: 420ms;
 
-      /* CARD LOOK */
       --card-bg: rgb(245,245,245);
       --card-radius: 0px;
 
-      /* logo sizing vars (match About system) */
       --logo-w: 54px;
       --logo-h: 58px;
       --logo-gap: 18px;
     }
 
-    /* =========================
-     TOP NAV
-     ========================= */
   .topbar{
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -146,7 +132,6 @@
     color: var(--nav-hero-text);
   }
 
-  /* ✅ FIX: desktop row spacing lives on nav-links (since links are wrapped) */
   .nav .nav-links{
     display:flex;
     align-items:center;
@@ -166,7 +151,6 @@
   }
   .nav a:hover{ opacity: .85; }
 
-  /* dropdown */
   .drop{
     position: relative;
     display: inline-flex;
@@ -301,9 +285,6 @@
     .recruit{ padding: 10px 14px !important; }
   }
 
-/* =========================
-   MOBILE NAV TOGGLE
-   ========================= */
 .nav-toggle{
   display: none;
   margin-left: auto;
@@ -335,7 +316,6 @@
 @media (max-width: 920px){
   .nav-toggle{ display: inline-flex; }
 
-  /* hide desktop row; use dropdown container under the bar */
   .nav{
     position: absolute;
     left: 0;
@@ -359,10 +339,9 @@
     transform: translateY(0);
   }
 
-  /* panel */
   .nav .nav-links{
     width: min(520px, calc(100vw - (2 * var(--padX))));
-    margin: 0 auto; /* centered under topbar */
+    margin: 0 auto;
     background: rgba(16,24,40,.92);
     border: 1px solid rgba(255,255,255,.10);
     box-shadow: 0 14px 30px rgba(16,24,40,.18);
@@ -374,7 +353,6 @@
     white-space: normal;
   }
 
-  /* rows */
   .nav a,
   .drop > button{
     width: 100%;
@@ -391,7 +369,6 @@
     margin-left: 0 !important;
   }
 
-  /* hamburger -> X */
   .topbar.nav-open .nav-toggle span:nth-child(1){
     transform: translateY(8px) rotate(45deg);
   }
@@ -402,7 +379,6 @@
     transform: translateY(-8px) rotate(-45deg);
   }
 
-  /* MOBILE: dropdown opens on tap (focus) */
   .drop{
     width: 100%;
     display: flex;
@@ -458,10 +434,6 @@
 
   .drop::after{ display: none; }
 
-  /* =========================
-     FIX: keep mobile dropdown text WHITE when menu is open
-     (prevents .is-solid turning it dark)
-     ========================= */
   .topbar.nav-open .nav,
   .topbar.is-solid.nav-open .nav{
     color: rgba(255,255,255,.92);
@@ -484,22 +456,18 @@
     background-color: rgba(255,255,255,.10);
   }
 
-/* bars stay white ONLY while still on hero (not solid yet) */
 .topbar.nav-open:not(.is-solid) .nav-toggle span{
   background: rgba(255,255,255,.92);
 }
 }
 
-/* =========================
-     HERO
-     ========================= */
   .hero{
     position: relative;
     height: var(--hero-h);
     min-height: var(--hero-min-h);
     overflow: hidden;
     padding-top: 70px;
-    background: transparent; /* ✅ FIX: stays black while images load */
+    background: transparent;
   }
   .hero-bg{
     position:absolute;
@@ -586,17 +554,11 @@
     border-bottom-color: rgba(255,255,255,.40);
   }
 
-    /* =========================
-       PAGE CLIP
-       ========================= */
     .page-clip{ overflow-x: clip; }
     @supports not (overflow-x: clip){
       .page-clip{ overflow-x: hidden; }
     }
 
-    /* =========================
-       SECTION + WRAP
-       ========================= */
     .section{
       padding: 74px var(--padX);
       background:#fff;
@@ -606,9 +568,6 @@
       margin: 0 auto;
     }
 
-    /* =========================
-       FAQ LAYOUT (match About/Events)
-       ========================= */
     .faq-layout{
       display:flex;
       align-items:flex-start;
@@ -648,9 +607,6 @@
     }
     .side-photo:hover::before{ transform: scale(var(--grid-scale)); }
 
-    /* =========================
-       TITLE + STACK (match Events centering)
-       ========================= */
     .block-title{
       margin: 40px 0 -28px;
       text-align:center;
@@ -660,7 +616,6 @@
       color: rgba(16,24,40,.92);
     }
 
-    /* ✅ FIX: keep the whole stack centered under the title */
     .faq-stack{
       width: min(1200px, 100%);
       margin: 0 auto;
@@ -686,9 +641,6 @@
       white-space: pre-line;
     }
 
-    /* =========================
-       FAQ SECTIONS + ACCORDION
-       ========================= */
     .faq-section{
       margin-top: 46px;
     }
@@ -794,9 +746,6 @@
       white-space: pre-line;
     }
 
-    /* =========================
-       FOOTER (match About/Events)
-       ========================= */
     .footer{
       padding: 64px var(--padX);
       background: #fff;
@@ -856,9 +805,6 @@
       letter-spacing: .02em;
     }
 
-    /* =========================
-       PAGE LOAD + SCROLL REVEAL (match About/Events preload rules)
-       ========================= */
     body.preload .hero-bg{ opacity: 1 !important; }
     body.preload .hero-inner > div{ opacity: 1; transform: translateY(10px); }
     body.preload .hero-socials{ opacity: 1; transform: translateY(10px); }
@@ -886,9 +832,6 @@
       transform: translateY(0);
     }
 
-    /* =========================
-       RESPONSIVE (match About/Events)
-       ========================= */
     @media (max-width: 1180px){
       .faq-side{ width: 320px; flex-basis: 320px; margin-left: 40px; }
       .side-photo{ height: 640px; }
@@ -913,23 +856,23 @@
       .footer-links{ align-items:flex-start; }
     }
 
-    /* Reduced motion */
     @media (prefers-reduced-motion: reduce){
       *{ transition: none !important; scroll-behavior: auto !important; }
       .hero-bg{ transition: none !important; }
     }
   </style>
+  <link rel="stylesheet" href="../assets/site.css">
 </head>
 
 <body class="preload">
-  <!-- NAV -->
+<a class="skip-link" href="#main-content">Skip to content</a>
+
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <a class="brand brand-float" href="../index.html" aria-label="Home">
       <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
     </a>
 
-    <!-- MOBILE TOGGLE (hamburger) -->
     <button class="nav-toggle"
             type="button"
             aria-label="Open menu"
@@ -947,21 +890,22 @@
           <div class="menu" role="menu" aria-label="About menu">
             <a href="../about/index.html" role="menuitem">ABOUT</a>
             <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
+            <a href="../faq/index.html" aria-current="page" role="menuitem">FAQ</a>
           </div>
         </div>
 
         <a href="../events/index.html">EVENTS</a>
         <a href="../alumni/index.html">ALUMNI</a>
-        <a href="../faq/index.html">FAQ</a>
-        <a href="../contact/index.html">CONTACT</a>
-        <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
+                <a href="../contact/index.html">CONTACT</a>
+        <a href="../recruitment/index.html">RECRUITMENT</a>
+        <a class="recruit" href="../newsletter/index.html">JOIN MAILING LIST</a>
       </div>
     </nav>
   </div>
 </header>
 
-  <main class="page-clip">
-    <!-- HERO -->
+  <main class="page-clip" id="main-content" tabindex="-1">
+
     <section class="hero" id="hero">
       <div class="hero-bg a" id="bgA"></div>
       <div class="hero-bg b" id="bgB"></div>
@@ -983,12 +927,10 @@
     </section>
   </main>
 
-  <!-- MAIN -->
   <section class="section reveal" id="faq">
     <div class="wrap">
       <div class="faq-layout">
 
-        <!-- LEFT -->
         <div class="faq-main">
           <h2 class="block-title">Frequently Asked Questions</h2>
 
@@ -997,7 +939,6 @@
               <p class="faq-text">Answers to common questions about membership, involvement, and CES programming.</p>
             </div>
 
-<!-- SECTION 1 -->
 <div class="faq-section" aria-label="Membership and Involvement">
   <h3 class="faq-section-title">Membership &amp; Involvement</h3>
 
@@ -1084,7 +1025,6 @@
   </div>
 </div>
 
-            <!-- SECTION 2 -->
             <div class="faq-section" aria-label="Programs and Events">
               <h3 class="faq-section-title">Programs &amp; Events</h3>
 
@@ -1154,7 +1094,6 @@
           </div>
         </div>
 
-        <!-- RIGHT -->
         <aside class="faq-side" aria-label="Campus photo">
           <div class="side-photo" style="--img:url('../verticals/im4.jpg');"></div>
         </aside>
@@ -1163,19 +1102,19 @@
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="footer reveal" id="contact">
     <div class="footer-inner">
       <div class="footer-left">
         <h4>Columbia Economics Society</h4>
         <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
-        <div class="line">70 Morningside Drive</div>
+        <div class="line">Columbia University</div>
         <div class="line">New York, NY 10027</div>
       </div>
 
       <div class="footer-right">
-        <h4>Follow Us</h4>
+        <h4>Stay connected</h4>
         <div class="footer-links">
+        <a class="newsletter-link" href="../newsletter/index.html">Join the mailing list</a>
           <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
           <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
           <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
@@ -1190,9 +1129,7 @@
   </footer>
 
   <script>
-    // =========================
-    // NAV: transparent on hero, solid after scroll
-    // =========================
+
     const topbar = document.getElementById("topbar");
     const heroEl = document.getElementById("hero");
     function setNavState(){
@@ -1204,9 +1141,6 @@
     window.addEventListener("scroll", setNavState, { passive:true });
     window.addEventListener("resize", setNavState);
 
-    // =========================
-    // HERO SLIDESHOW (crossfade) + reveal on first image (match Events)
-    // =========================
     const slides = [
       "../horizontals/im6.jpg",
       "../horizontals/im5.jpg",
@@ -1221,6 +1155,7 @@
     let timer = null;
 
     function startSlideshow(){
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       if(timer) return;
 
       const intervalMsRaw = getComputedStyle(document.documentElement)
@@ -1296,9 +1231,6 @@
       startSlideshow();
     });
 
-    // =========================
-    // FAQ ACCORDION
-    // =========================
     const items = document.querySelectorAll(".faq-item");
     items.forEach(item => {
       const btn = item.querySelector(".faq-btn");
@@ -1322,25 +1254,18 @@
       });
     });
 
-    // keep open panels sized correctly on resize
     window.addEventListener("resize", () => {
       document.querySelectorAll(".faq-item.open .faq-body").forEach(body => {
         body.style.maxHeight = body.scrollHeight + "px";
       });
     });
 
-    // =========================
-    // SCROLL REVEAL
-    // =========================
     const revealEls = document.querySelectorAll(".reveal");
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
     }, { threshold: 0.03 });
     revealEls.forEach(el => io.observe(el));
 
-    // =========================
-    // YEAR
-    // =========================
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 
