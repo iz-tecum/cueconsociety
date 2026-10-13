@@ -6,9 +6,9 @@ const BINDING_COOKIE = '__Host-ces_google_oauth';
 const TTL = 600000;
 
 export class GoogleConnectionError extends Error {
-  constructor(message, status = 409) { super(message); this.status = status; }
+  constructor(message, status = 409, code = 'GOOGLE_CONNECTION_INVALID') { super(message); this.status = status; this.code = code; }
 }
-function reject(message, status = 409) { throw new GoogleConnectionError(message, status); }
+function reject(message, status = 409, code) { throw new GoogleConnectionError(message, status, code); }
 function base64(bytes) { return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, ''); }
 function unbase64(value) { return Uint8Array.from(atob(value.replaceAll('-', '+').replaceAll('_', '/')), character => character.charCodeAt(0)); }
 function random() { return base64(crypto.getRandomValues(new Uint8Array(32))); }
@@ -86,27 +86,37 @@ export async function sessionSendingEnvironment(env, sessionHash, now = Date.now
     GMAIL_REFRESH_TOKEN: refreshToken, GMAIL_PRINCIPAL: linked.email, GMAIL_FROM: linked.email, GMAIL_CONNECTION_ID: linked.google_sub }, status };
 }
 
-async function googleJSON(fetchImpl, url, init) {
+async function googleJSON(fetchImpl, url, init, stage) {
   let reply;
   try { reply = await fetchImpl(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(15000) }); }
-  catch { reject('Google could not be reached. Please start the connection again.'); }
-  if (!reply.ok) reject('Google did not accept the connection. Please start again.');
-  try { return await reply.json(); } catch { reject('Google returned an invalid connection response.'); }
+  catch { reject('Google could not be reached. Please start the connection again.', 409, stage); }
+  if (!reply.ok) {
+    let providerCode = '';
+    if (stage === 'GOOGLE_TOKEN_EXCHANGE_FAILED') {
+      try {
+        const data = await reply.json();
+        if (['invalid_grant', 'invalid_client', 'unauthorized_client', 'access_denied', 'invalid_scope'].includes(data?.error)) providerCode = `_${data.error.toUpperCase()}`;
+      } catch {}
+    }
+    reject('Google did not accept the connection. Please start again.', 409, stage + providerCode);
+  }
+  try { return await reply.json(); } catch { reject('Google returned an invalid connection response.', 409, stage); }
 }
 async function readIdentity(env, authorization, verifier, fetchImpl) {
   const tokens = await googleJSON(fetchImpl, 'https://oauth2.googleapis.com/token', {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ client_id: env.GOOGLE_CLIENT_ID, client_secret: env.GOOGLE_CLIENT_SECRET, code: authorization,
       code_verifier: verifier, redirect_uri: env.GOOGLE_REDIRECT_URI, grant_type: 'authorization_code' }).toString()
-  });
+  }, 'GOOGLE_TOKEN_EXCHANGE_FAILED');
   if (typeof tokens?.access_token !== 'string' || tokens.access_token.length < 8 || tokens.access_token.length > 16384 ||
-      typeof tokens.refresh_token !== 'string' || tokens.refresh_token.length < 8 || tokens.refresh_token.length > 16384 || String(tokens.token_type).toLowerCase() !== 'bearer') reject('Google did not provide offline access. Please connect again.');
-  const info = await googleJSON(fetchImpl, `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(tokens.access_token)}`, { method: 'GET' });
+      typeof tokens.refresh_token !== 'string' || tokens.refresh_token.length < 8 || tokens.refresh_token.length > 16384 || String(tokens.token_type).toLowerCase() !== 'bearer') reject('Google did not provide offline access. Please connect again.', 409, 'GOOGLE_OFFLINE_ACCESS_MISSING');
+  const info = await googleJSON(fetchImpl, `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(tokens.access_token)}`, { method: 'GET' }, 'GOOGLE_TOKENINFO_FAILED');
   const scopes = new Set(String(info?.scope || '').split(/\s+/));
-  if (info?.aud !== env.GOOGLE_CLIENT_ID || !scopes.has(SEND_SCOPE) || !scopes.has('openid') || !(scopes.has('email') || scopes.has(EMAIL_SCOPE))) reject('The required Google permissions were not granted.');
-  const identity = await googleJSON(fetchImpl, 'https://openidconnect.googleapis.com/v1/userinfo', { method: 'GET', headers: { Authorization: `Bearer ${tokens.access_token}` } });
+  if (info?.aud !== env.GOOGLE_CLIENT_ID) reject('Google returned a token for a different application. Please connect again.', 409, 'GOOGLE_CLIENT_MISMATCH');
+  if (!scopes.has(SEND_SCOPE) || !scopes.has('openid') || !(scopes.has('email') || scopes.has(EMAIL_SCOPE))) reject('The required Google permissions were not granted.', 409, 'GOOGLE_PERMISSIONS_MISSING');
+  const identity = await googleJSON(fetchImpl, 'https://openidconnect.googleapis.com/v1/userinfo', { method: 'GET', headers: { Authorization: `Bearer ${tokens.access_token}` } }, 'GOOGLE_USERINFO_FAILED');
   const email = columbiaEmail(identity?.email);
-  if (identity?.email_verified !== true || !email || typeof identity.sub !== 'string' || !/^[A-Za-z0-9_-]{1,255}$/.test(identity.sub) || (info.sub && info.sub !== identity.sub)) reject('Connect a verified Columbia Google account.');
+  if (identity?.email_verified !== true || !email || typeof identity.sub !== 'string' || !/^[A-Za-z0-9_-]{1,255}$/.test(identity.sub) || (info.sub && info.sub !== identity.sub)) reject('Connect a verified Columbia Google account.', 409, 'GOOGLE_IDENTITY_INVALID');
   return { sub: identity.sub, email, refreshToken: tokens.refresh_token };
 }
 
@@ -162,7 +172,7 @@ export async function handleGoogleSession(request, env, { sessionHash, now = Dat
         .bind(sessionHash, identity.sub, new Date(checkedAt).toISOString(), hash, sessionHash, now, checkedAt, checkedAt),
       env.DB.prepare('DELETE FROM google_oauth_states WHERE state_hash=? AND session_hash=?').bind(hash, sessionHash)
     ]);
-    if (!saved[1].results.length) reject('This Google connection was superseded or the CES session expired. Connect again.');
+    if (!saved[1].results.length) reject('This Google connection was superseded or the CES session expired. Connect again.', 409, 'GOOGLE_CONNECTION_SUPERSEDED');
     return response({ connected: true, email: identity.email, sendingEnabled: env.GMAIL_SEND_ENABLED === 'true' }, { 'Set-Cookie': cookie('', 0) });
   }
   if (route === '/api/admin/google/disconnect' && request.method === 'POST') {
@@ -188,7 +198,7 @@ export async function googleCallbackPage(request, env, now = Date.now()) {
     .bind(await digest(state), await digest(bind), now, now, env.GOOGLE_CLIENT_ID).first();
   if (!valid) reject('This connection attempt expired. Return to CES and connect again.');
   const nonce = random();
-  const script = `(async()=>{const query=new URLSearchParams(location.search);const state=query.get('state'),code=query.get('code'),error=query.get('error');history.replaceState(null,'','/api/admin/google/callback');try{if(query.getAll('code').length>1||query.getAll('error').length>1)throw Error();const session=await fetch('/api/admin/session',{credentials:'same-origin',cache:'no-store'});if(!session.ok)throw Error();const data=await session.json();const result=await fetch('/api/admin/google/complete',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':data.csrfToken},body:JSON.stringify({state,...(error!==null?{error}:{code})})});location.replace(result.ok?'/admin/?google=connected':'/admin/?google=error')}catch{location.replace('/admin/?google=error')}})();`;
+  const script = `(async()=>{const query=new URLSearchParams(location.search);const state=query.get('state'),code=query.get('code'),error=query.get('error');history.replaceState(null,'','/api/admin/google/callback');try{if(query.getAll('code').length>1||query.getAll('error').length>1)throw Error();const session=await fetch('/api/admin/session',{credentials:'same-origin',cache:'no-store'});if(!session.ok)throw Error();const data=await session.json();const result=await fetch('/api/admin/google/complete',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':data.csrfToken},body:JSON.stringify({state,...(error!==null?{error}:{code})})});if(result.ok){location.replace('/admin/?google=connected');return}const failure=await result.json();const allowed=/^GOOGLE_(?:TOKEN_EXCHANGE_FAILED(?:_(?:INVALID_GRANT|INVALID_CLIENT|UNAUTHORIZED_CLIENT|ACCESS_DENIED|INVALID_SCOPE))?|OFFLINE_ACCESS_MISSING|TOKENINFO_FAILED|PERMISSIONS_MISSING|CLIENT_MISMATCH|USERINFO_FAILED|IDENTITY_INVALID|CONNECTION_SUPERSEDED|CONNECTION_INVALID)$/;location.replace('/admin/?google=error'+(allowed.test(failure.code)?'&reason='+failure.code:''))}catch{location.replace('/admin/?google=error')}})();`;
   return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect Google</title><p>Finishing your Google connection…</p><script nonce="${nonce}">${script}</script></html>`, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` }

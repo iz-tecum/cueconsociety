@@ -31,6 +31,8 @@ async function setup(t) {
   const googleFetch = async (value, init = {}) => {
     const url = new URL(value), endpoint = url.origin + url.pathname;
     calls.push({ endpoint, method: init.method || 'GET', body: init.body });
+    const override = hooks.reply?.(endpoint);
+    if (override) return override;
     if (endpoint === 'https://oauth2.googleapis.com/token') {
       const params = new URLSearchParams(init.body);
       const name = params.get('grant_type') === 'authorization_code' ? params.get('code') : params.get('refresh_token')?.replace('refresh-', '');
@@ -158,6 +160,30 @@ test('wrong binding, expired state, unverified/non-Columbia identities and wrong
   attempt = await f.start(a); assert.equal((await f.complete(a, attempt, 'alice')).status, 409);
   assert.equal((await f.database.prepare('SELECT COUNT(*) AS n FROM google_connections').first()).n, 0);
   assert.equal((await f.database.prepare('SELECT COUNT(*) AS n FROM google_session_connections').first()).n, 0);
+});
+
+test('OAuth failure diagnostics expose fixed stages and allowlisted provider codes without private data', async t => {
+  const f = await setup(t), a = await f.login();
+  const token = 'https://oauth2.googleapis.com/token', info = 'https://oauth2.googleapis.com/tokeninfo', user = 'https://openidconnect.googleapis.com/v1/userinfo';
+  const cases = [
+    [token, { error: 'invalid_grant', error_description: 'private-code private-token private-secret' }, 400, 'GOOGLE_TOKEN_EXCHANGE_FAILED_INVALID_GRANT'],
+    [token, { error: 'unrecognized-private-token' }, 400, 'GOOGLE_TOKEN_EXCHANGE_FAILED'],
+    [token, { access_token: 'private-token', token_type: 'Bearer' }, 200, 'GOOGLE_OFFLINE_ACCESS_MISSING'],
+    [info, { error: 'private-token' }, 400, 'GOOGLE_TOKENINFO_FAILED'],
+    [info, { aud: 'different-client', scope: `openid email ${SEND}` }, 200, 'GOOGLE_CLIENT_MISMATCH'],
+    [info, { aud: base.GOOGLE_CLIENT_ID, scope: 'openid email' }, 200, 'GOOGLE_PERMISSIONS_MISSING'],
+    [user, { error: 'private-token' }, 500, 'GOOGLE_USERINFO_FAILED'],
+    [user, { email: 'person@example.org', email_verified: true, sub: 'subject-alice' }, 200, 'GOOGLE_IDENTITY_INVALID']
+  ];
+  for (const [endpoint, data, status, expected] of cases) {
+    f.hooks.reply = requested => requested === endpoint ? Response.json(data, { status }) : null;
+    const attempt = await f.start(a), reply = await f.complete(a, attempt, 'alice');
+    assert.equal(reply.status, 409);
+    const body = await reply.json(); assert.equal(body.code, expected);
+    assert.doesNotMatch(JSON.stringify(body), /private-code|private-token|private-secret|different-client/);
+    assert.equal((await f.database.prepare('SELECT COUNT(*) AS n FROM google_connections').first()).n, 0);
+  }
+  assert.ok(f.calls.every(call => !call.endpoint.includes('/messages/send')));
 });
 
 test('refresh tokens are encrypted with fresh nonces and authenticated identity context', async t => {

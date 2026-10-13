@@ -14,7 +14,24 @@ let sendingBusy = false, sendingLoaded = false, dispatchTimer = null, dispatchEp
 let verificationTimer = null;
 const returnParams = new URLSearchParams(location.search);
 let googleReturn = ['connected', 'error'].includes(returnParams.get('google')) ? returnParams.get('google') : '';
-if (googleReturn) { returnParams.delete('google'); history.replaceState(null, '', location.pathname + (returnParams.size ? '?' + returnParams.toString() : '') + location.hash); }
+const googleErrorMessages = new Map([
+  ['GOOGLE_TOKEN_EXCHANGE_FAILED', 'Google could not complete authorization. Try connecting again.'],
+  ['GOOGLE_OFFLINE_ACCESS_MISSING', 'Google did not grant offline access. Reconnect and approve access.'],
+  ['GOOGLE_TOKENINFO_FAILED', 'Google could not verify the access token. Try connecting again.'],
+  ['GOOGLE_PERMISSIONS_MISSING', 'Google did not grant the required permissions. Reconnect and approve access.'],
+  ['GOOGLE_CLIENT_MISMATCH', 'The Google app does not match this site. Ask an admin to check its setup.'],
+  ['GOOGLE_USERINFO_FAILED', 'Google could not read your account identity. Try connecting again.'],
+  ['GOOGLE_IDENTITY_INVALID', 'Use a verified @columbia.edu Google account.'],
+  ['GOOGLE_CONNECTION_SUPERSEDED', 'A newer connection attempt replaced this one. Try connecting again.'],
+  ['GOOGLE_CONNECTION_INVALID', 'Google connection could not be verified. Try connecting again.'],
+  ['GOOGLE_TOKEN_EXCHANGE_FAILED_INVALID_GRANT', 'Google rejected this authorization. Connect again.'],
+  ['GOOGLE_TOKEN_EXCHANGE_FAILED_INVALID_CLIENT', 'Google rejected the app credentials. Ask an admin to check setup.'],
+  ['GOOGLE_TOKEN_EXCHANGE_FAILED_UNAUTHORIZED_CLIENT', 'Google has not authorized this app. Ask an admin to check setup.'],
+  ['GOOGLE_TOKEN_EXCHANGE_FAILED_ACCESS_DENIED', 'Google did not allow access for this app or account.'],
+  ['GOOGLE_TOKEN_EXCHANGE_FAILED_INVALID_SCOPE', 'Google rejected the requested permissions. Ask an admin to check setup.']
+]);
+const googleErrorMessage = googleErrorMessages.get(returnParams.get('reason')) || 'Google connection was not completed. Try again.';
+if (googleReturn) { returnParams.delete('google'); returnParams.delete('reason'); history.replaceState(null, '', location.pathname + (returnParams.size ? '?' + returnParams.toString() : '') + location.hash); }
 const pageSize = 50;
 const number = value => Number(value).toLocaleString();
 const statusLabel = value => value === 'cleaned' ? 'Undeliverable' : value[0].toUpperCase() + value.slice(1);
@@ -341,7 +358,7 @@ async function loadSending() {
     sendingLoaded = true; renderStagedCampaigns();
     if (stagedCampaignId) await refreshSendingCampaign();
     if (googleReturn) {
-      sendingNote(googleReturn === 'error' ? 'Google connection was not completed. Try again.' : sendingStatus.oauthConnected ? 'Google connected for this session. Nothing sent.' : 'Google is not connected for this session.');
+      sendingNote(googleReturn === 'error' ? googleErrorMessage : sendingStatus.oauthConnected ? 'Google connected for this session. Nothing sent.' : 'Google is not connected for this session.');
       googleReturn = '';
     }
   } catch (error) { if (!statusReceived) invalidateSendingVerification(); sendingNote(error.message); }

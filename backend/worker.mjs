@@ -354,7 +354,7 @@ export function createWorker({ clock = Date.now, gmailFetch, googleFetch } = {})
     } catch (error) {
       const known = error instanceof HttpError || error instanceof SendingError || error instanceof GoogleConnectionError;
       const status = known ? error.status : error instanceof GmailError ? 409 : 503;
-      return response({ ok: false, error: known ? error.message : error instanceof GmailError ? error.code : 'Service is temporarily unavailable. Please try again later.' }, status, { ...cors, ...(status === 429 ? { 'Retry-After': '3600' } : {}) });
+      return response({ ok: false, error: known ? error.message : error instanceof GmailError ? error.code : 'Service is temporarily unavailable. Please try again later.', ...(error instanceof GoogleConnectionError ? { code: error.code } : {}) }, status, { ...cors, ...(status === 429 ? { 'Retry-After': '3600' } : {}) });
     }
   } };
 }
