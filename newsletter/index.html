@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="Join the Columbia Economics Society mailing list for events, career opportunities, research, and community updates.">
+  <meta name="description" content="Join the Columbia Economics Society mailing list.">
+  <meta name="ces-newsletter-api" content="https://cueconsociety.vercel.app/api/newsletter">
   <title>CES | Mailing List</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./newsletter.css">
-  <script src="./newsletter.js" defer></script>
+  <link rel="stylesheet" href="/newsletter/newsletter.css">
+  <script src="/newsletter/newsletter.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -54,37 +55,29 @@
     <section class="hero" id="hero" aria-labelledby="page-title">
       <div class="hero-bg a" id="bgA"></div>
       <div class="hero-bg b" id="bgB"></div>
-      <div class="hero-inner"><div><h1 id="page-title">Stay connected</h1></div></div>
+      <div class="hero-inner"><div><h1 id="page-title">Mailing list</h1></div></div>
       <div class="hero-socials">
         <div class="left">COLUMBIA ECONOMICS SOCIETY</div>
         <div class="right"><a href="../events/">EVENTS</a><a href="mailto:econboard@columbia.edu">EMAIL</a></div>
       </div>
     </section>
-    <section class="newsletter-section" aria-labelledby="form-heading">
+    <section class="newsletter-section" aria-labelledby="page-title">
       <div class="newsletter-layout">
-        <div class="newsletter-intro">
-          <p class="eyebrow">The CES mailing list</p>
-          <h2 id="form-heading">A place in the conversation.</h2>
-          <p>Talks, workshops, career opportunities, and time with the CES community. Add your email below. You can also tell us what interests you.</p>
-          <p class="small-copy">Open to the Columbia and Barnard community. Questions? <a href="mailto:econboard@columbia.edu">Contact the board</a>.</p>
-          <img class="campus-photo" src="../horizontals/im2.jpg" alt="Columbia University campus" loading="lazy">
-        </div>
         <div class="signup-panel">
           <form id="newsletter-form" novalidate>
-            <h3>Get CES updates</h3>
-            <p class="form-intro">Email is required. Your name is optional.</p>
+            <p class="form-intro">CES events and opportunities, by email.</p>
             <div class="field">
               <label for="subscriber-name">Name <span class="optional">(optional)</span></label>
               <input id="subscriber-name" name="name" type="text" autocomplete="name" maxlength="100">
             </div>
             <div class="field">
               <label for="subscriber-email">Email <span aria-hidden="true">*</span></label>
-              <input id="subscriber-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required aria-describedby="email-hint">
-              <p class="field-hint" id="email-hint">Use the address where you want to receive CES updates.</p>
+              <input id="subscriber-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required>
             </div>
-            <fieldset id="interests-group" aria-describedby="interests-hint">
-              <legend>What interests you? <span class="optional">(optional)</span></legend>
-              <p class="field-hint" id="interests-hint">Choose any topics you’re interested in, or leave this blank.</p>
+            <details class="interests-options">
+              <summary>Interests <span class="optional">(optional)</span></summary>
+            <fieldset id="interests-group">
+              <legend class="visually-hidden">Choose your interests</legend>
               <div class="interest-grid">
                 <label class="interest"><input name="interests" type="checkbox" value="events"><span>Events &amp; speakers</span></label>
                 <label class="interest"><input name="interests" type="checkbox" value="careers"><span>Careers &amp; workshops</span></label>
@@ -92,17 +85,17 @@
                 <label class="interest"><input name="interests" type="checkbox" value="social"><span>Community &amp; socials</span></label>
               </div>
             </fieldset>
+            </details>
             <div class="bot-field" aria-hidden="true"><label for="website">Website</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
-            <label class="consent"><input id="subscriber-consent" name="consent" type="checkbox" required><span>I agree to receive CES emails. I can unsubscribe at any time.</span></label>
-            <p class="privacy-note">Your details stay with CES for its mailing list. After signing up, save your private unsubscribe link. For help with an existing subscription, <a href="mailto:econboard@columbia.edu">contact the board</a>.</p>
+            <label class="consent"><input id="subscriber-consent" name="consent" type="checkbox" required><span>I agree to receive CES emails. I can unsubscribe anytime.</span></label>
+            <p class="privacy-note">Your details are used for the CES mailing list.</p>
             <button class="action-button" id="subscribe-button" type="submit">Join the mailing list <span aria-hidden="true">→</span></button>
             <p id="form-status" class="status" role="status" aria-live="polite" tabindex="-1"></p>
             <noscript><p class="status error">Please enable JavaScript to use this form, or email <a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a> for help joining.</p></noscript>
           </form>
           <section id="signup-success" hidden aria-labelledby="success-heading">
-            <p class="eyebrow">The CES mailing list</p>
             <h3 id="success-heading" tabindex="-1">Request received</h3>
-            <p>Your request has been received. If this is a new signup, save the private link below to unsubscribe later. For an existing subscription, contact <a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a> to make a change.</p>
+            <p>For a new signup, save the private unsubscribe link below. To change an existing subscription, <a href="mailto:econboard@columbia.edu">contact the board</a>.</p>
             <div id="manage-link-panel" hidden>
               <h4>Save your private link</h4>
               <p>Keep this link private.</p>
@@ -111,17 +104,15 @@
               <button class="text-button" id="copy-link" type="button">Copy link</button>
               <p id="copy-status" class="field-hint" role="status" aria-live="polite"></p>
             </div>
-            <p class="small-copy">Need help? <a href="mailto:econboard@columbia.edu">Contact the board</a>.</p>
             <a class="action-button" href="../events/">Explore CES events <span aria-hidden="true">→</span></a>
           </section>
           <section id="unsubscribe-panel" hidden aria-labelledby="unsubscribe-heading">
             <p class="eyebrow">Your subscription</p>
             <h3 id="unsubscribe-heading">Leave the mailing list</h3>
             <p>Use the button below to stop CES updates for <strong id="unsubscribe-email"></strong>.</p>
-            <p class="small-copy">Opening this page does not change your subscription.</p>
             <button class="action-button" id="unsubscribe-button" type="button">Unsubscribe</button>
             <p id="unsubscribe-status" class="status" role="status" aria-live="polite" tabindex="-1"></p>
-            <a class="text-button" href="./">Back to signup</a>
+            <a class="text-button" href="/newsletter/">Back to signup</a>
           </section>
         </div>
       </div>

@@ -74,10 +74,7 @@
   document.addEventListener('visibilitychange', startSlideshow);
   startSlideshow();
 
-  const staticHosts = new Set(['cueconsociety.com', 'www.cueconsociety.com', 'iz-tecum.github.io']);
-  const endpoint = staticHosts.has(window.location.hostname)
-    ? 'https://cueconsociety.vercel.app/api/newsletter'
-    : '/api/newsletter';
+  const endpoint = document.querySelector('meta[name="ces-newsletter-api"]')?.content || '/api/newsletter';
   const form = byId('newsletter-form');
   const status = byId('form-status');
   const submitButton = byId('subscribe-button');
@@ -161,7 +158,7 @@
         startedAt
       });
       if (typeof data.manageToken === 'string' && data.manageToken) {
-        const manageUrl = new URL('./', window.location.href);
+        const manageUrl = new URL('/newsletter/', window.location.origin);
         manageUrl.search = '';
         manageUrl.hash = new URLSearchParams({ email, token: data.manageToken }).toString();
         byId('manage-link').value = manageUrl.href;
@@ -200,7 +197,7 @@
     form.hidden = true;
     byId('unsubscribe-panel').hidden = false;
     byId('unsubscribe-email').textContent = manageEmail;
-    byId('form-heading').textContent = 'Your place on the list.';
+    byId('page-title').textContent = 'Your subscription';
     document.title = 'CES | Your Subscription';
     if (queryParams.has('token')) {
       const cleanUrl = new URL(window.location.href);
