@@ -196,12 +196,31 @@ test('Preview deployments cannot mutate the production store even with a spoofed
 });
 
 test('Storage failures reveal no contacts, credentials, or internal error and never fall back to ephemeral success', async () => {
-  const handler = createHandler({ store: { read() { throw new Error('SECRET / users@example.test / storage-url'); } }, env: ENV, clock: () => NOW });
+  const reports = [];
+  const handler = createHandler({ store: { read() { throw new Error('SECRET / users@example.test / storage-url'); } }, env: ENV, clock: () => NOW, report: entry => reports.push(entry) });
   const response = await call(handler, request());
   assert.equal(response.statusCode, 503);
   assert.equal(JSON.stringify(response).includes('SECRET'), false);
   assert.equal(JSON.stringify(response).includes('users@example.test'), false);
   assert.equal(response.headers['cache-control'], 'private, no-store');
+  assert.deepEqual(reports, [{ event: 'ces_newsletter_failure', phase: 'storage-read', reason: 'UNEXPECTED_FAILURE' }]);
+});
+
+test('Operational failure logs contain fixed classifications only, with no request or error values', async () => {
+  const cases = [
+    [{ ...ENV, BLOB_READ_WRITE_TOKEN: undefined }, request(), 'client-key', 'RATE_SECRET_MISSING'],
+    [ENV, request(INPUT, { headers: { origin: 'https://cueconsociety.com', 'content-type': 'application/json' } }), 'client-key', 'CLIENT_IP_MISSING'],
+    [ENV, request(INPUT, { headers: { origin: 'https://cueconsociety.com', 'content-type': 'application/json', 'x-forwarded-for': 'private-value' } }), 'client-key', 'CLIENT_IP_INVALID']
+  ];
+  for (const [env, req, phase, reason] of cases) {
+    const reports = [];
+    const response = await call(createHandler({ env, store: memoryStore(), clock: () => NOW, report: entry => reports.push(entry) }), req);
+    assert.equal(response.statusCode, 503);
+    assert.deepEqual(reports, [{ event: 'ces_newsletter_failure', phase, reason }]);
+    assert.equal(JSON.stringify(reports).includes(INPUT.email), false);
+    assert.equal(JSON.stringify(reports).includes('private-value'), false);
+    assert.equal(JSON.stringify(reports).includes(ENV.BLOB_READ_WRITE_TOKEN), false);
+  }
 });
 
 test('API has no audience export or search action', async () => {
