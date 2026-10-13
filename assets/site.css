@@ -4,6 +4,21 @@
 }
 
 body { background: #fff; }
+.topbar, .topbar.is-solid {
+  background: #102b42;
+  border-bottom: 1px solid rgba(255,255,255,.16);
+  box-shadow: 0 4px 16px rgba(8,24,39,.12);
+}
+.topbar .nav, .topbar.is-solid .nav { color: #fff; }
+.topbar .recruit, .topbar.is-solid .recruit {
+  color: #fff !important;
+  border-color: #fff;
+  background: transparent;
+}
+.topbar .recruit:hover, .topbar.is-solid .recruit:hover { background: rgba(255,255,255,.12); }
+.topbar .nav-toggle, .topbar.is-solid .nav-toggle { border-color: rgba(255,255,255,.5); }
+.topbar .nav-toggle span, .topbar.is-solid .nav-toggle span { background: #fff; }
+.topbar a:focus-visible, .topbar button:focus-visible { outline-color: #fff; }
 .hero { background: var(--ces-navy); }
 .hero::before { background: linear-gradient(180deg, rgba(8,24,39,.38), rgba(8,24,39,.52)); }
 .reveal { opacity: 1; transform: none; }
