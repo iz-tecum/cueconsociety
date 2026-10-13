@@ -46,7 +46,7 @@ function retryAfter(response) {
   return value && Number.isFinite(seconds) ? Math.max(1, Math.min(86400, seconds)) * 1000 : 60000;
 }
 async function timedFetch(fetchImpl, url, options) {
-  return fetchImpl(url, { ...options, redirect: 'error', signal: AbortSignal.timeout(15000) });
+  return fetchImpl(url, { ...options, redirect: 'manual', signal: AbortSignal.timeout(15000) });
 }
 
 export function createGmailAdapter(env, { fetchImpl = globalThis.fetch, clock = Date.now } = {}) {

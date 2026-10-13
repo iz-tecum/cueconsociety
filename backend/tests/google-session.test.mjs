@@ -30,6 +30,7 @@ async function setup(t) {
   const hooks = {};
   const googleFetch = async (value, init = {}) => {
     const url = new URL(value), endpoint = url.origin + url.pathname;
+    assert.equal(init.redirect, 'manual');
     calls.push({ endpoint, method: init.method || 'GET', body: init.body });
     const override = hooks.reply?.(endpoint);
     if (override) return override;
@@ -168,6 +169,7 @@ test('OAuth failure diagnostics expose fixed stages and allowlisted provider cod
   const cases = [
     [token, { error: 'invalid_grant', error_description: 'private-code private-token private-secret' }, 400, 'GOOGLE_TOKEN_EXCHANGE_FAILED_INVALID_GRANT'],
     [token, { error: 'unrecognized-private-token' }, 400, 'GOOGLE_TOKEN_EXCHANGE_FAILED'],
+    [token, { access_token: 'redirect-must-not-be-accepted', refresh_token: 'redirect-refresh', token_type: 'Bearer' }, 302, 'GOOGLE_TOKEN_EXCHANGE_FAILED'],
     [token, { access_token: 'private-token', token_type: 'Bearer' }, 200, 'GOOGLE_OFFLINE_ACCESS_MISSING'],
     [info, { error: 'private-token' }, 400, 'GOOGLE_TOKENINFO_FAILED'],
     [info, { aud: 'different-client', scope: `openid email ${SEND}` }, 200, 'GOOGLE_CLIENT_MISMATCH'],

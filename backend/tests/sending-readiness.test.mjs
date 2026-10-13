@@ -26,6 +26,8 @@ async function setup(t, overrides = {}) {
   let clock = NOW;
   const fetchImpl = async (value, options = {}) => {
     const url = new URL(value); calls.push({ path: url.origin + url.pathname, method: options.method || 'GET' });
+    assert.equal(options.redirect, 'manual');
+    if (google.redirect && url.href === 'https://oauth2.googleapis.com/token') return Response.json({ access_token: 'untrusted-redirect-token' }, { status: 302, headers: { Location: 'https://untrusted.example/token' } });
     if (url.href === 'https://oauth2.googleapis.com/token') return new URLSearchParams(options.body).get('client_secret') === google.clientSecret
       ? Response.json({ access_token: 'readiness-access-token', expires_in: 3600 }) : Response.json({ error: 'invalid_client' }, { status: 400 });
     if (url.origin + url.pathname === 'https://oauth2.googleapis.com/tokeninfo') return Response.json({ aud: env.GMAIL_CLIENT_ID, scope: google.scope });
@@ -60,6 +62,17 @@ test('unconfigured readiness lists missing names without Google calls, hashes, o
   const serialized = JSON.stringify(result);
   for (const name of ['GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_UNSUBSCRIBE_SECRET']) assert.equal(serialized.includes(base[name]), false);
   assert.equal(serialized.includes(await gmailConfigurationFingerprint(fixture.env)), false);
+});
+
+test('a provider redirect fails preflight without following its location or enabling delivery', async t => {
+  const fixture = await setup(t);
+  fixture.google.redirect = true;
+  const reply = await fixture.check();
+  assert.equal(reply.status, 409);
+  assert.equal((await fixture.status()).connectionVerified, false);
+  assert.equal((await fixture.status()).enabled, false);
+  assert.deepEqual(fixture.calls.map(call => call.path), ['https://oauth2.googleapis.com/token']);
+  assert.equal((await fixture.database.prepare('SELECT COUNT(*) AS n FROM send_budget').first()).n, 0);
 });
 
 test('explicit preflight verifies the exact mailbox and accepted alias but sends nothing or enables delivery', async t => {

@@ -88,7 +88,7 @@ export async function sessionSendingEnvironment(env, sessionHash, now = Date.now
 
 async function googleJSON(fetchImpl, url, init, stage) {
   let reply;
-  try { reply = await fetchImpl(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(15000) }); }
+  try { reply = await fetchImpl(url, { ...init, redirect: 'manual', signal: AbortSignal.timeout(15000) }); }
   catch { reject('Google could not be reached. Please start the connection again.', 409, stage); }
   if (!reply.ok) {
     let providerCode = '';
