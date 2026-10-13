@@ -1,4 +1,5 @@
 import { createGmailAdapter, gmailConfiguration, gmailConfigurationFingerprint, GmailError } from './gmail-adapter.mjs';
+import newsletterTemplate from '../admin/newsletter-template.js';
 
 const encoder = new TextEncoder();
 const DAY = 86400000;
@@ -18,21 +19,7 @@ function base64(bytes) { let result = ''; for (let i = 0; i < bytes.length; i +=
 function base64url(bytes) { return base64(bytes).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, ''); }
 async function digest(value) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value)))].map(v => v.toString(16).padStart(2, '0')).join(''); }
 function equal(a, b) { let d = a.length ^ b.length; for (let i = 0; i < Math.max(a.length, b.length); i++) d |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0); return d === 0; }
-function escapeHTML(value) { return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
-function inlineHTML(text) {
-  return escapeHTML(text).replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>').replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (whole, label, href) => {
-    try { const url = new URL(href.replaceAll('&amp;', '&')); return ['https:', 'http:'].includes(url.protocol) ? `<a href="${escapeHTML(url.href)}" rel="noreferrer noopener">${label}</a>` : whole; }
-    catch { return whole; }
-  });
-}
-export function bodyHTML(text) {
-  return String(text || '').replaceAll('\r\n', '\n').split(/\n\s*\n/).filter(Boolean).map(block => {
-    const lines = block.split('\n');
-    if (lines.every(line => /^[-*] /.test(line))) return `<ul>${lines.map(line => `<li>${inlineHTML(line.slice(2))}</li>`).join('')}</ul>`;
-    if (/^#{1,3} /.test(block) && lines.length === 1) return `<h2>${inlineHTML(block.replace(/^#{1,3} /, ''))}</h2>`;
-    return `<p>${lines.map(inlineHTML).join('<br>')}</p>`;
-  }).join('\n');
-}
+export const bodyHTML = newsletterTemplate.renderBodyHTML;
 function publicCampaign(row, count) {
   const snapshot = JSON.parse(row.snapshot_json);
   return { id: row.id, status: row.status, subject: snapshot.subject, recipientCount: count, createdAt: row.created_at, updatedAt: row.updated_at, approvedAt: row.approved_at };
@@ -41,12 +28,14 @@ async function countJobs(env, id) {
   const rows = await env.DB.prepare('SELECT status,COUNT(*) AS count FROM send_jobs WHERE campaign_id=? GROUP BY status').bind(id).all();
   return { ...Object.fromEntries(STATES.map(status => [status, 0])), ...Object.fromEntries(rows.results.map(row => [row.status, row.count])) };
 }
-async function detail(env, id) {
+async function detail(env, id, includePreview = false) {
   await assertCampaignOwner(env, id);
   const row = await env.DB.prepare('SELECT * FROM send_campaigns WHERE id=?').bind(id).first();
   if (!row) reject('Campaign not found.', 404);
   const counts = await countJobs(env, id);
-  return { campaign: publicCampaign(row, Object.values(counts).reduce((sum, n) => sum + n, 0)), counts };
+  const snapshot = includePreview ? JSON.parse(row.snapshot_json) : null;
+  return { campaign: publicCampaign(row, Object.values(counts).reduce((sum, n) => sum + n, 0)), counts,
+    ...(includePreview ? { preview: { subject: snapshot.subject, preheader: snapshot.preheader, body: snapshot.body, from: row.from_email } } : {}) };
 }
 async function assertCampaignOwner(env, id) {
   if (env.GMAIL_SESSION_OAUTH !== 'true') return;
@@ -121,7 +110,7 @@ export async function stageCampaign(env, draftId, now = Date.now()) {
     ...(env.GMAIL_SESSION_OAUTH === 'true' ? { googleSubject: env.GMAIL_CONNECTION_ID } : {}), recipientIds: eligible.results.map(row => row.id) };
   const key = await digest(JSON.stringify(snapshot));
   let existing = await env.DB.prepare('SELECT * FROM send_campaigns WHERE snapshot_key=?').bind(key).first();
-  if (existing) return { ...await detail(env, existing.id), reused: true };
+  if (existing) return { ...await detail(env, existing.id, true), reused: true };
   const id = crypto.randomUUID(), at = iso(now);
   await env.DB.batch([
     env.DB.prepare("INSERT INTO send_campaigns(id,snapshot_key,draft_id,snapshot_json,from_email,status,created_at,updated_at) VALUES(?,?,?,?,?,'staged',?,?) ON CONFLICT(snapshot_key) DO NOTHING")
@@ -136,7 +125,7 @@ export async function stageCampaign(env, draftId, now = Date.now()) {
     ...(env.GMAIL_SESSION_OAUTH === 'true' ? [env.DB.prepare('INSERT INTO google_campaign_owners(campaign_id,google_sub) SELECT id,? FROM send_campaigns WHERE snapshot_key=? ON CONFLICT(campaign_id) DO NOTHING').bind(env.GMAIL_CONNECTION_ID, key)] : [])
   ]);
   existing = await env.DB.prepare('SELECT id FROM send_campaigns WHERE snapshot_key=?').bind(key).first();
-  return { ...await detail(env, existing.id), reused: existing.id !== id };
+  return { ...await detail(env, existing.id, true), reused: existing.id !== id };
 }
 
 export async function unsubscribeToken(env, contactId) {
@@ -167,7 +156,7 @@ export async function renderMessage(env, campaign, job, now = Date.now()) {
   const displayName = 'Columbia Economics Society';
   const plainBody = snapshot.body.replace(/^#{1,3} /gm, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '$1 ($2)');
   const text = `${snapshot.subject}\n${snapshot.preheader ? snapshot.preheader + '\n' : ''}\n${plainBody}\n\nColumbia Economics Society · Columbia University\nUnsubscribe: ${links.page}\n`;
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(snapshot.subject)}</title><style>body{margin:0;background:#edf3f8;color:#19324e;font:16px/1.65 Arial,sans-serif}.mail{max-width:640px;margin:32px auto;background:#fff;padding:36px}.brand{font-size:12px;letter-spacing:2px;color:#637d96}h1{font-size:28px;line-height:1.25}h2{font-size:20px}a{color:#245b84}footer{margin-top:36px;padding-top:18px;border-top:1px solid #dbe6ef;font-size:12px;color:#52697d}p{margin:18px 0}@media(max-width:680px){.mail{margin:0;padding:24px}}</style></head><body><div style="display:none;max-height:0;overflow:hidden">${escapeHTML(snapshot.preheader)}</div><article class="mail"><div class="brand">COLUMBIA ECONOMICS SOCIETY</div><h1>${escapeHTML(snapshot.subject)}</h1>${bodyHTML(snapshot.body)}<footer>Columbia Economics Society · Columbia University<br><a href="${escapeHTML(links.page)}">Unsubscribe</a></footer></article></body></html>`;
+  const html = newsletterTemplate.renderEmailHTML(snapshot, { unsubscribeUrl: links.page, recipientEmail: job.recipient_email, fromEmail: from });
   const boundary = `ces_${job.id}`;
   const subject = encodedSubject(snapshot.subject);
   const lines = [
@@ -314,7 +303,7 @@ export async function handleSending(request, env, { now = Date.now(), readJSON, 
   }
   if (path === '/api/admin/sending/dispatch' && request.method === 'POST') return reply(await dispatchOne(env, (await readJSON(request, 4096)).campaignId, { adapter, now }));
   const match = path.match(/^\/api\/admin\/sending\/campaigns\/([A-Za-z0-9_-]{8,80})(?:\/(start|pause))?$/);
-  if (match && request.method === 'GET' && !match[2]) return reply(await detail(env, match[1]));
+  if (match && request.method === 'GET' && !match[2]) return reply(await detail(env, match[1], true));
   if (match && request.method === 'POST') {
     await readJSON(request, 4096);
     if (match[2] === 'start') return reply(await startCampaign(env, match[1], adapter, now));

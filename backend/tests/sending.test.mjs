@@ -7,7 +7,7 @@ import { importRecords } from '../import.mjs';
 import { createGmailAdapter, clearGmailTokenCache, GmailError } from '../gmail-adapter.mjs';
 import { stageCampaign, dispatchOne, sendingStatus, unsubscribeLinks, handleUnsubscribe, renderMessage, bodyHTML } from '../send-queue.mjs';
 
-const require = createRequire(import.meta.url), preview = require('../../admin/core.js');
+const require = createRequire(import.meta.url), preview = require('../../admin/newsletter-template.js');
 const ORIGIN = 'https://ces.example', now = Date.parse('2026-10-13T12:00:00Z');
 const salt = Buffer.from('queue-test-salt-with-enough-bytes').toString('base64url');
 const hash = await derivePassword('test-password', salt);
@@ -205,7 +205,13 @@ test('actual MIME preserves safe preview formatting, individual recipients and f
   for (const word of message.match(/=\?UTF-8\?B\?[^?]+\?=/g)) assert.ok(word.length <= 75);
   assert.equal(staged.campaign.recipientCount, 1);
   const markdown = '## Heading\n\n**strong** and [safe](https://example.org/?a=1&b=2)\n\n- first\n- second\n\n<img src=x onerror=alert(1)> [bad](javascript:alert(1))';
-  assert.equal(bodyHTML(markdown), preview.bodyHTML(markdown)); assert.ok(!bodyHTML(markdown).includes('<img'));
+  assert.equal(bodyHTML(markdown), preview.renderBodyHTML(markdown)); assert.ok(!bodyHTML(markdown).includes('<img'));
+  const htmlPart = message.split('Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n')[1].split('\r\n--')[0];
+  const html = Buffer.from(htmlPart.replace(/\r\n/g, ''), 'base64').toString('utf8');
+  const links = await unsubscribeLinks(env, job.contact_id);
+  assert.equal(html, preview.renderEmailHTML(JSON.parse(campaign.snapshot_json), { unsubscribeUrl: links.page, recipientEmail: job.recipient_email, fromEmail: campaign.from_email }));
+  assert.ok(html.includes(links.page.replaceAll('&', '&amp;')));
+  assert.ok(html.includes('https://admin.cueconsociety.com/admin/assets/ceslogo.png'));
 });
 
 test('all sending actions inherit login, exact Origin and CSRF checks', async t => {
@@ -218,7 +224,14 @@ test('all sending actions inherit login, exact Origin and CSRF checks', async t 
   const checked = await request('/api/admin/sending/check', 'POST', {}, { Cookie: cookie, 'X-CSRF-Token': data.csrfToken }); assert.equal(checked.status, 200); assert.equal((await checked.json()).available, false);
   const saved = await draft(env, 1);
   const staged = await request('/api/admin/sending/campaigns', 'POST', { draftId: saved.id }, { Cookie: cookie, 'X-CSRF-Token': data.csrfToken }); assert.equal(staged.status, 200);
-  const campaign = (await staged.json()).campaign;
+  const stagedData = await staged.json(), campaign = stagedData.campaign;
+  assert.deepEqual(stagedData.preview, { subject: 'Example campaign', preheader: 'A short preview', body: '## Event\n\n**Come along**\n\n- first\n- [details](https://example.org)', from: base.GMAIL_FROM });
+  await env.DB.prepare('UPDATE drafts SET subject=?,body=? WHERE id=?').bind('Edited subject', 'Edited body', saved.id).run();
+  const detail = await request(`/api/admin/sending/campaigns/${campaign.id}`, 'GET', undefined, { Cookie: cookie });
+  assert.equal(detail.status, 200); assert.deepEqual((await detail.json()).preview, stagedData.preview);
+  assert.equal((await request(`/api/admin/sending/campaigns/${campaign.id}`)).status, 401);
+  const list = await (await request('/api/admin/sending/campaigns', 'GET', undefined, { Cookie: cookie })).json();
+  assert.equal(list.campaigns[0].preview, undefined);
   assert.equal((await request(`/api/admin/sending/campaigns/${campaign.id}/start`, 'POST', {}, { Cookie: cookie, 'X-CSRF-Token': data.csrfToken })).status, 409);
   assert.equal(mock.sent().length, 0);
 });

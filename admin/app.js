@@ -7,11 +7,14 @@ const $ = id => document.getElementById(id);
 const configuredBase = String(window.CES_MAILDESK_CONFIG?.apiBase || '').replace(/\/$/, '');
 const apiBase = configuredBase ? new URL(configuredBase, location.origin).origin : location.origin;
 let csrfToken = '', rows = [], drafts = [], selected = new Set(), page = 1;
-let audienceTime = '', draftId = '', dirty = false, prepared = false, busy = false, sessionEpoch = 0;
+let audienceTime = '', draftId = '', dirty = false, busy = false, sessionEpoch = 0;
 let messages = [], messagesLoaded = false, selectedMessageId = '';
 let sendingStatus = null, stagedCampaigns = [], stagedCampaignId = '', sendingCampaign = null;
 let sendingBusy = false, sendingLoaded = false, dispatchTimer = null, dispatchEpoch = 0, dispatchCampaignId = '';
 let verificationTimer = null;
+let stagedPreview = null, renderedEmail = '';
+const emailPreview = $('preview').attachShadow({ mode: 'open' });
+emailPreview.addEventListener('click', event => { if (event.target.closest?.('a')) event.preventDefault(); });
 const returnParams = new URLSearchParams(location.search);
 let googleReturn = ['connected', 'error'].includes(returnParams.get('google')) ? returnParams.get('google') : '';
 const googleErrorMessages = new Map([
@@ -34,18 +37,21 @@ const googleErrorMessage = googleErrorMessages.get(returnParams.get('reason')) |
 if (googleReturn) { returnParams.delete('google'); returnParams.delete('reason'); history.replaceState(null, '', location.pathname + (returnParams.size ? '?' + returnParams.toString() : '') + location.hash); }
 const pageSize = 50;
 const number = value => Number(value).toLocaleString();
-const statusLabel = value => value === 'cleaned' ? 'Undeliverable' : value[0].toUpperCase() + value.slice(1);
 
 function notice(message, error = false) {
   $('notice').textContent = message;
   $('notice').classList.toggle('error', error);
   $('notice').hidden = false;
 }
-function hideExports() { prepared = false; $('exports').hidden = true; }
-function markDirty() { dirty = true; hideExports(); $('draftState').textContent = 'Unsaved changes'; }
+function clearStagedSelection() {
+  const hadSelection = Boolean(stagedCampaignId);
+  stagedCampaignId = ''; sendingCampaign = null; stagedPreview = null; $('stagedCampaigns').value = '';
+  if (hadSelection) sendingNote('Draft changed. Stage again.');
+}
+function markDirty() { dirty = true; clearStagedSelection(); $('draftState').textContent = 'Unsaved changes'; renderSendingControls(); }
 function setBusy(value) {
   busy = value;
-  for (const id of ['reload', 'saveDraft', 'pause', 'unsubscribe', 'prepare', 'newDraft', 'draftList', 'subject', 'preheader', 'body', 'selectMatching', 'clearSelection']) $(id).disabled = value;
+  for (const id of ['reload', 'saveDraft', 'pause', 'unsubscribe', 'newDraft', 'exampleDraft', 'draftList', 'subject', 'preheader', 'body', 'selectAll', 'selectMatching', 'clearSelection']) $(id).disabled = value;
   for (const checkbox of $('contacts').querySelectorAll('input[type=checkbox]')) checkbox.disabled = value || checkbox.dataset.suppressed === 'true';
   if (!value) updateSelection();
   renderSendingControls();
@@ -55,16 +61,16 @@ function showLogin(message = '') {
   sessionEpoch++;
   csrfToken = ''; rows = []; drafts = []; selected.clear(); draftId = ''; dirty = false;
   messages = []; messagesLoaded = false; selectedMessageId = '';
-  sendingStatus = null; stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; sendingLoaded = false;
+  sendingStatus = null; stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; stagedPreview = null; sendingLoaded = false;
   if (verificationTimer !== null) clearTimeout(verificationTimer); verificationTimer = null;
   $('loginPanel').hidden = false; $('workspace').hidden = true; $('account').hidden = true;
-  $('accountEmail').textContent = ''; $('loginPassword').value = ''; $('loginNotice').textContent = message;
+  $('loginPassword').value = ''; $('loginNotice').textContent = message;
   $('contacts').replaceChildren(); $('draftList').replaceChildren();
   $('messageList').replaceChildren(); $('messageDetail').replaceChildren();
   $('stagedCampaigns').replaceChildren(); $('sendingProgress').textContent = ''; $('sendingFrom').textContent = 'From —';
   $('sendingStatus').textContent = 'Sending off · Google not connected'; renderSendingControls();
   for (const id of ['subject', 'preheader', 'body']) $(id).value = '';
-  $('preview').srcdoc = ''; hideExports();
+  emailPreview.replaceChildren(); renderedEmail = '';
 }
 async function api(path, { method = 'GET', body } = {}) {
   const epoch = sessionEpoch;
@@ -102,50 +108,66 @@ function ask(title, message, okay = 'Continue') {
     dialog.oncancel = event => { event.preventDefault(); done(false); }; dialog.showModal();
   });
 }
-function options(id, values, first) {
-  const previous = $(id).value; $(id).replaceChildren();
-  for (const value of ['', ...values]) {
-    const option = document.createElement('option'); option.value = value; option.textContent = value || first; $(id).append(option);
-  }
-  if (values.includes(previous)) $(id).value = previous;
-}
-function filtered() { return M.filter(rows, { search: $('search').value, status: $('status').value, interest: $('interest').value, source: $('source').value }); }
+function filtered() { return M.filter(rows, { search: $('search').value, status: 'subscribed' }); }
 function recipients() { return rows.filter(row => row.status === 'subscribed' && selected.has(row.id)); }
 function updateSelection() {
-  const count = recipients().length;
-  $('selectedCount').textContent = number(count) + ' recipients selected';
-  $('campaignAudience').textContent = count ? number(count) + ' subscribers selected' : 'Select subscribers in Audience.';
-  $('pause').disabled = $('unsubscribe').disabled = busy || !count;
-  renderSendingControls();
+  const chosen = recipients(), count = chosen.length;
+  $('selectedCount').textContent = number(count) + ' selected';
+  for (const id of ['pause', 'unsubscribe', 'clearSelection', 'copySelected', 'copyCampaignRecipients', 'useRecipients']) $(id).disabled = busy || !count;
+  renderSendingControls(); preview();
 }
 function render() {
   const counts = M.counts(rows);
-  for (const status of ['total', 'subscribed', 'unsubscribed', 'cleaned']) $('count-' + status).textContent = number(counts[status]);
-  $('count-other').textContent = number(counts.pending + counts.archived);
+  $('count-subscribed').textContent = number(counts.subscribed);
+  $('selectAll').textContent = 'Select all ' + number(counts.subscribed);
+  $('selectMatching').hidden = !$('search').value.trim();
   const matches = filtered(), pages = Math.max(1, Math.ceil(matches.length / pageSize));
   page = Math.min(page, pages);
-  $('matchCount').textContent = number(matches.length) + ' contacts';
+  $('matchCount').textContent = number(matches.length) + (matches.length === 1 ? ' subscriber' : ' subscribers');
   $('pageLabel').textContent = 'Page ' + page + ' of ' + pages;
   $('previous').disabled = page === 1; $('next').disabled = page === pages; $('contacts').replaceChildren();
   for (const row of matches.slice((page - 1) * pageSize, page * pageSize)) {
     const tr = document.createElement('tr'), pick = document.createElement('td'), checkbox = document.createElement('input');
     checkbox.type = 'checkbox'; checkbox.checked = selected.has(row.id) && row.status === 'subscribed';
     checkbox.dataset.suppressed = String(row.status !== 'subscribed'); checkbox.disabled = busy || row.status !== 'subscribed'; checkbox.setAttribute('aria-label', 'Select ' + (row.name || row.email));
-    checkbox.onchange = () => { checkbox.checked ? selected.add(row.id) : selected.delete(row.id); markDirty(); updateSelection(); }; pick.append(checkbox);
-    const contact = document.createElement('td'), name = document.createElement('strong'); contact.className = 'contact'; name.textContent = row.name || row.email; contact.append(name);
-    if (row.name) { const email = document.createElement('span'); email.textContent = row.email; contact.append(email); }
-    const status = document.createElement('td'), pill = document.createElement('span'); pill.className = 'pill ' + row.status; pill.textContent = statusLabel(row.status); status.append(pill);
-    const interests = document.createElement('td'); interests.textContent = row.interests.join(', ') || '—';
-    const source = document.createElement('td'); source.className = 'source-cell'; source.textContent = row.sources.join(', ') || '—';
-    tr.append(pick, contact, status, interests, source); $('contacts').append(tr);
+    tr.classList.toggle('selected', checkbox.checked);
+    checkbox.onchange = () => { checkbox.checked ? selected.add(row.id) : selected.delete(row.id); tr.classList.toggle('selected', checkbox.checked); markDirty(); updateSelection(); }; pick.append(checkbox);
+    const contact = document.createElement('td'); contact.className = 'contact'; contact.textContent = row.name || '—';
+    const email = document.createElement('td'); email.className = 'email'; email.textContent = row.email;
+    tr.append(pick, contact, email); $('contacts').append(tr);
   }
   if (!matches.length) {
-    const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 5; td.className = 'empty'; td.textContent = rows.length ? 'No matching contacts.' : 'No contacts yet.'; tr.append(td); $('contacts').append(tr);
+    const tr = document.createElement('tr'), td = document.createElement('td'); td.colSpan = 3; td.className = 'empty'; td.textContent = counts.subscribed ? 'No matching subscribers.' : 'No subscribers yet.'; tr.append(td); $('contacts').append(tr);
   }
   updateSelection();
 }
 function draft() { return { title: $('subject').value.trim() || 'Untitled draft', subject: $('subject').value.trim(), preheader: $('preheader').value.trim(), body: $('body').value.trim(), recipientIds: recipients().map(row => row.id) }; }
-function preview() { const current = draft(); $('preview').srcdoc = M.campaignHTML(current); $('wordCount').textContent = number(current.body ? current.body.split(/\s+/).length : 0) + ' words'; }
+function preview() {
+  const current = draft(), content = stagedPreview || current, chosen = recipients();
+  const count = stagedPreview ? Number(sendingCampaign?.recipientCount || 0) : chosen.length;
+  $('campaignAudience').textContent = number(count) + (stagedPreview ? ' staged' : '') + (count === 1 ? ' recipient' : ' recipients');
+  $('recipientDetail').textContent = stagedPreview ? 'Saved campaign recipients' : !count ? 'Select subscribers in Audience.' : count === rows.filter(row => row.status === 'subscribed').length ? 'All subscribers selected' : chosen.slice(0, 3).map(row => row.email).join(', ') + (count > 3 ? ' + ' + number(count - 3) + ' more' : '');
+  $('copyCampaignRecipients').disabled = busy || Boolean(stagedPreview) || !count;
+  const from = stagedPreview ? stagedPreview.from : sendingStatus?.from || '';
+  const recipientEmail = !stagedPreview && chosen.length === 1 ? chosen[0].email : '';
+  $('previewTitle').textContent = stagedPreview ? 'Staged preview' : 'Email preview';
+  $('previewSubject').textContent = content.subject || '(no subject)';
+  $('previewFrom').textContent = from ? 'Columbia Economics Society <' + from + '>' : 'Connect Google';
+  $('previewTo').textContent = stagedPreview ? number(sendingCampaign?.recipientCount || 0) + ' staged subscribers' : recipientEmail || (chosen.length ? number(chosen.length) + ' selected subscribers' : 'Selected subscribers');
+  const html = window.CESNewsletter.renderEmailHTML(content, { fromEmail: from, recipientEmail });
+  if (html !== renderedEmail) {
+    const parsed = new DOMParser().parseFromString(html, 'text/html'), wrapper = document.createElement('div');
+    wrapper.setAttribute('style', parsed.body.getAttribute('style') || '');
+    wrapper.append(...Array.from(parsed.body.childNodes, node => document.importNode(node, true)));
+    emailPreview.replaceChildren(wrapper); renderedEmail = html;
+  }
+  $('wordCount').textContent = number(current.body ? current.body.split(/\s+/).length : 0) + ' words';
+}
+async function copyRecipients() {
+  const chosen = recipients(); if (!chosen.length) return;
+  try { await navigator.clipboard.writeText(chosen.map(row => row.email).join('\n')); notice(number(chosen.length) + ' email addresses copied.'); }
+  catch { notice('Your browser could not copy the addresses. Try again with clipboard access enabled.', true); }
+}
 function download(name, content, type = 'application/json') {
   const blob = new Blob([typeof content === 'string' ? content : JSON.stringify(content, null, 2)], { type });
   const url = URL.createObjectURL(blob), anchor = document.createElement('a'); anchor.href = url; anchor.download = name; document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -160,8 +182,7 @@ async function loadAudience() {
   rows = normalized.rows.map(row => ({ ...row, id: ids.get(row.email) }));
   selected = new Set(recipients().map(row => row.id)); audienceTime = data.updatedAt || new Date().toISOString();
   const time = new Date(audienceTime); $('snapshot').textContent = 'Updated ' + (Number.isNaN(time.getTime()) ? 'just now' : time.toLocaleString());
-  options('interest', [...new Set(rows.flatMap(row => row.interests))].sort(), 'All interests');
-  options('source', [...new Set(rows.flatMap(row => row.sources))].sort(), 'All sources'); hideExports(); render();
+  render();
 }
 function renderDraftList() {
   $('draftList').replaceChildren(); const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Saved drafts'; $('draftList').append(placeholder);
@@ -171,7 +192,7 @@ function renderDraftList() {
 async function loadDrafts() { const data = await api('/api/admin/drafts'); drafts = Array.isArray(data.drafts) ? data.drafts : []; renderDraftList(); }
 async function enterSession(session) {
   if (!session?.email || !session?.csrfToken) throw Error('Could not open a secure session. Try signing in again.');
-  csrfToken = session.csrfToken; $('loginPassword').value = ''; $('accountEmail').textContent = session.email;
+  csrfToken = session.csrfToken; $('loginPassword').value = '';
   $('loginPanel').hidden = true; $('workspace').hidden = false; $('account').hidden = false; $('notice').hidden = true; setBusy(true);
   try {
     await loadAudience();
@@ -224,11 +245,11 @@ async function refresh() {
   try { await loadAudience(); await loadDrafts(); notice('Up to date.'); } catch (error) { notice(error.message, true); } finally { setBusy(false); }
 }
 async function changeStatus(status) {
-  if (busy) return;
+  if (busy || sendingBusy || dispatchCampaignId) return;
   const chosen = recipients(); if (!chosen.length) return;
   const verb = status === 'archived' ? 'Archive' : 'Unsubscribe';
   if (!await ask(verb + ' ' + number(chosen.length) + ' contacts?', 'This updates the shared list and excludes these contacts from future campaigns.', verb)) return;
-  setBusy(true); hideExports();
+  setBusy(true);
   try {
     try { await api('/api/admin/contacts/status', { method: 'POST', body: { ids: chosen.map(row => row.id), status } }); }
     catch (error) {
@@ -244,7 +265,7 @@ async function changeStatus(status) {
       await Promise.all(Array.from({ length: Math.min(4, chosen.length) }, worker));
       if (failure) throw Error(completed + ' contacts updated. ' + failure.message);
     }
-    selected.clear(); dirty = true; await loadAudience(); notice(number(chosen.length) + ' contacts ' + (status === 'archived' ? 'archived.' : 'unsubscribed.'));
+    selected.clear(); markDirty(); await loadAudience(); notice(number(chosen.length) + ' contacts ' + (status === 'archived' ? 'archived.' : 'unsubscribed.'));
   } catch (error) {
     notice(error.message, true);
     if (csrfToken) { try { await loadAudience(); } catch {} }
@@ -267,30 +288,23 @@ async function chooseDraft(id) {
   if (busy) return;
   if (dirty && !await ask('Open another draft?', 'Unsaved changes will be replaced.', 'Open')) { $('draftList').value = draftId; return; }
   const current = drafts.find(item => String(item.id) === id); if (!current) return;
+  clearStagedSelection();
   draftId = id; const allowed = new Set(Array.isArray(current.recipientIds) ? current.recipientIds.map(String) : []);
   selected = new Set(rows.filter(row => row.status === 'subscribed' && allowed.has(row.id)).map(row => row.id));
   for (const field of ['subject', 'preheader', 'body']) $(field).value = typeof current[field] === 'string' ? current[field] : '';
-  dirty = false; hideExports(); $('draftState').textContent = 'Saved'; render(); switchPanel('campaign');
+  dirty = false; $('draftState').textContent = 'Saved'; render(); switchPanel('campaign');
 }
 async function newDraft() {
   if (busy || (dirty && !await ask('Start a new draft?', 'Unsaved changes will be replaced.', 'New draft'))) return;
-  draftId = ''; for (const field of ['subject', 'preheader', 'body']) $(field).value = '';
-  dirty = false; hideExports(); $('draftState').textContent = 'Unsaved draft'; renderDraftList(); preview();
+  clearStagedSelection(); draftId = ''; for (const field of ['subject', 'preheader', 'body']) $(field).value = '';
+  dirty = false; $('draftState').textContent = 'Unsaved draft'; renderDraftList(); preview(); renderSendingControls();
 }
-function ensurePrepared() {
-  if (!prepared) { notice('Prepare exports after making changes.', true); return false; }
-  if (!recipients().length) { notice('Select at least one subscriber.', true); return false; }
-  return true;
-}
-async function prepare() {
-  if (busy) return;
-  const current = draft(); if (!current.subject || !current.body) return notice('Add a subject and message first.', true);
-  setBusy(true);
-  try {
-    await loadAudience();
-    if (!recipients().length) return notice('Select at least one subscriber.', true);
-    prepared = true; $('exportSummary').textContent = number(recipients().length) + ' current subscribers. Nothing sent.'; $('exports').hidden = false; notice('Exports ready.');
-  } catch (error) { notice(error.message, true); } finally { setBusy(false); }
+async function exampleDraft() {
+  if (busy || dispatchCampaignId || (dirty && !await ask('Use example?', 'This replaces the unsaved text. Your recipient selection stays the same.', 'Use example'))) return;
+  draftId = ''; $('subject').value = 'Example · This week at CES';
+  $('preheader').value = 'A sample newsletter from Columbia Economics Society';
+  $('body').value = 'Hi everyone,\n\nThis is a sample CES newsletter. Replace this text with the details of your next event or update.\n\n## Around the society\n\nBring a question, meet other students, and join the discussion. Add the confirmed time and location here before sending.\n\n- A short event announcement\n- One opportunity for members\n- A link with the full details\n\nVisit the [CES website](https://cueconsociety.com/) for more about the society.\n\nBest,\nColumbia Economics Society';
+  markDirty(); renderDraftList(); preview(); $('draftState').textContent = 'Example · not saved';
 }
 function sendingNote(message) { $('sendingProgress').textContent = message; }
 function hasSenderConnection() {
@@ -307,6 +321,7 @@ function setSendingStatus(value) {
   if (verificationTimer !== null) clearTimeout(verificationTimer); verificationTimer = null;
   const expiresIn = Date.parse(value?.verificationExpiresAt) - Date.now();
   if (Number.isFinite(expiresIn) && expiresIn > 0) verificationTimer = setTimeout(() => { verificationTimer = null; renderSendingControls(); }, Math.min(expiresIn + 50, 2147483647));
+  preview();
 }
 function invalidateSendingVerification() {
   if (sendingStatus) setSendingStatus({ ...sendingStatus, connectionVerified: false, verificationExpiresAt: null, available: false, lastCheck: null, connectionState: sendingStatus.configured ? 'check_required' : 'not_configured' });
@@ -315,20 +330,23 @@ function renderSendingControls() {
   const active = Boolean(dispatchCampaignId), locked = busy || sendingBusy;
   const verified = connectionVerified(), ready = sendingReady();
   const status = sendingCampaign?.status;
-  $('stageCampaign').disabled = locked || active || !recipients().length;
+  for (const id of ['subject', 'preheader', 'body', 'newDraft', 'exampleDraft', 'saveDraft', 'draftList', 'selectAll', 'selectMatching']) $(id).disabled = locked || active;
+  for (const id of ['clearSelection', 'pause', 'unsubscribe']) $(id).disabled = locked || active || !recipients().length;
+  for (const checkbox of $('contacts').querySelectorAll('input[type=checkbox]')) checkbox.disabled = locked || active || checkbox.dataset.suppressed === 'true';
+  $('stageCampaign').disabled = locked || active || !recipients().length || !$('subject').value.trim() || !$('body').value.trim();
   $('stagedCampaigns').disabled = locked || active;
   $('connectGoogle').disabled = locked || active || !csrfToken || sendingStatus?.oauthAvailable !== true;
   $('disconnectGoogle').hidden = sendingStatus?.oauthConnected !== true;
   $('disconnectGoogle').disabled = locked || active || !csrfToken || sendingStatus?.oauthConnected !== true;
   $('checkSending').disabled = locked || active || !sendingStatus?.configured || !hasSenderConnection();
-  $('startSending').disabled = locked || active || !ready || !stagedCampaignId || !['staged', 'paused', 'running'].includes(status);
+  $('startSending').disabled = locked || active || !ready || !stagedCampaignId || !stagedPreview || !['staged', 'paused', 'running'].includes(status);
   $('pauseSending').disabled = sendingBusy || !(active || status === 'running');
   if (!sendingStatus) return;
   $('sendingStatus').textContent = !hasSenderConnection() || (!sendingStatus.configured && sendingStatus.oauthRequired === false) ? 'Sending off · Google not connected' : !sendingStatus.configured ? 'Sending off · Google setup unavailable' : !verified ? 'Sending off · Google check required' : !sendingStatus.enabled ? 'Google verified · Sending off' : ready ? 'Ready to start · Google verified' : 'Google verified · Sending unavailable';
   $('sendingFrom').textContent = 'From ' + (sendingStatus.from || '—');
 }
 function renderStagedCampaigns() {
-  if (!stagedCampaigns.some(campaign => String(campaign.id) === stagedCampaignId)) { stagedCampaignId = ''; sendingCampaign = null; }
+  if (!stagedCampaigns.some(campaign => String(campaign.id) === stagedCampaignId)) { stagedCampaignId = ''; sendingCampaign = null; stagedPreview = null; }
   $('stagedCampaigns').replaceChildren();
   const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Staged campaigns'; $('stagedCampaigns').append(placeholder);
   for (const campaign of stagedCampaigns) {
@@ -343,11 +361,11 @@ function campaignProgress(data) {
   return number(counts.sent || 0) + ' sent · ' + number(counts.skipped || 0) + ' skipped · ' + number(counts.needs_review || 0) + ' need review';
 }
 async function refreshSendingCampaign() {
-  if (!stagedCampaignId) { sendingCampaign = null; renderSendingControls(); return null; }
+  if (!stagedCampaignId) { sendingCampaign = null; stagedPreview = null; renderSendingControls(); preview(); return null; }
   const data = await api('/api/admin/sending/campaigns/' + encodeURIComponent(stagedCampaignId));
-  sendingCampaign = data.campaign;
-  if (!sendingCampaign?.id) throw Error('Could not read the staged campaign.');
-  sendingNote(campaignProgress(data) + ' · ' + sendingCampaign.status); renderSendingControls(); return data;
+  if (String(data.campaign?.id) !== stagedCampaignId || !data.preview || ['subject', 'preheader', 'body', 'from'].some(field => typeof data.preview[field] !== 'string')) throw Error('Could not read the staged preview. Refresh before sending.');
+  sendingCampaign = data.campaign; stagedPreview = data.preview;
+  sendingNote(campaignProgress(data) + ' · ' + sendingCampaign.status); renderSendingControls(); preview(); return data;
 }
 async function loadSending() {
   if (sendingBusy) return; sendingBusy = true; renderSendingControls();
@@ -393,7 +411,7 @@ async function disconnectGoogle() {
     const data = await api('/api/admin/google/disconnect', { method: 'POST', body: {} });
     if (data.connected !== false) throw Error('The server did not confirm disconnection. Check the connection before sending.');
     setSendingStatus({ ...sendingStatus, oauthConnected: false, oauthEmail: null, configured: false, from: '', principal: null });
-    stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; sendingLoaded = false; renderStagedCampaigns();
+    stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; stagedPreview = null; sendingLoaded = false; renderStagedCampaigns(); preview();
     sendingNote('Google disconnected for this session. Nothing sent.'); disconnected = true;
   } catch (error) { sendingNote(error.message); }
   finally { sendingBusy = false; renderSendingControls(); }
@@ -411,8 +429,9 @@ async function stageCampaign() {
     const data = await api('/api/admin/sending/campaigns', { method: 'POST', body: { draftId: savedId } });
     if (!data.campaign?.id) throw Error('The server did not confirm staging. Refresh before trying again.');
     sendingCampaign = data.campaign; stagedCampaignId = String(data.campaign.id);
+    await refreshSendingCampaign();
     const list = await api('/api/admin/sending/campaigns'); stagedCampaigns = Array.isArray(list.campaigns) ? list.campaigns : [];
-    renderStagedCampaigns(); sendingNote(number(sendingCampaign.recipientCount) + ' recipients staged. Nothing sent.');
+    renderStagedCampaigns(); preview(); sendingNote(number(sendingCampaign.recipientCount) + ' recipients staged. Nothing sent.');
   } catch (error) { sendingNote(error.message); }
   finally { sendingBusy = false; setBusy(false); }
 }
@@ -496,7 +515,8 @@ $('logout').onclick = async () => {
 };
 $('reload').onclick = refresh; $('tabAudience').onclick = () => switchPanel('audience'); $('tabCampaign').onclick = () => switchPanel('campaign');
 $('tabInbox').onclick = () => switchPanel('inbox'); $('reloadMessages').onclick = loadMessages;
-for (const id of ['search', 'status', 'interest', 'source']) $(id).addEventListener(id === 'search' ? 'input' : 'change', () => { page = 1; render(); });
+$('search').addEventListener('input', () => { page = 1; render(); });
+$('selectAll').onclick = () => { selected = new Set(rows.filter(row => row.status === 'subscribed').map(row => row.id)); markDirty(); render(); };
 $('selectMatching').onclick = () => { for (const row of filtered()) if (row.status === 'subscribed') selected.add(row.id); markDirty(); render(); };
 $('clearSelection').onclick = () => { selected.clear(); markDirty(); render(); };
 $('previous').onclick = () => { page--; render(); }; $('next').onclick = () => { page++; render(); };
@@ -504,19 +524,20 @@ $('pause').onclick = () => changeStatus('archived'); $('unsubscribe').onclick = 
 $('exportAllJSON').onclick = () => { if (rows.length) download('CES_Audience_' + stamp() + '.json', { schema: 'ces-maildesk-audience-v1', exportedAt: new Date().toISOString(), updatedAt: audienceTime, records: rows }); };
 $('exportAllCSV').onclick = () => { if (rows.length) download('CES_Audience_' + stamp() + '.csv', M.safeCSV(rows), 'text/csv;charset=utf-8'); };
 for (const id of ['subject', 'preheader', 'body']) $(id).addEventListener('input', () => { markDirty(); preview(); });
-$('saveDraft').onclick = saveDraft; $('newDraft').onclick = newDraft; $('draftList').onchange = () => chooseDraft($('draftList').value); $('prepare').onclick = prepare;
+$('saveDraft').onclick = saveDraft; $('newDraft').onclick = newDraft; $('exampleDraft').onclick = exampleDraft; $('draftList').onchange = () => chooseDraft($('draftList').value);
+$('changeRecipients').onclick = async () => {
+  if (dispatchCampaignId) await pauseDelivery();
+  clearStagedSelection(); updateSelection(); switchPanel('audience');
+}; $('useRecipients').onclick = () => switchPanel('campaign');
+$('copySelected').onclick = copyRecipients; $('copyCampaignRecipients').onclick = copyRecipients;
 $('stageCampaign').onclick = stageCampaign; $('checkSending').onclick = checkSending; $('startSending').onclick = startSending; $('pauseSending').onclick = pauseDelivery;
 $('connectGoogle').onclick = connectGoogle; $('disconnectGoogle').onclick = disconnectGoogle;
 $('stagedCampaigns').onchange = async () => {
   if (busy || sendingBusy || dispatchCampaignId) return;
-  stagedCampaignId = $('stagedCampaigns').value; sendingCampaign = null; sendingBusy = true; renderSendingControls();
+  stagedCampaignId = $('stagedCampaigns').value; sendingCampaign = null; stagedPreview = null; sendingBusy = true; renderSendingControls(); preview();
   try { await refreshSendingCampaign(); } catch (error) { sendingNote(error.message); } finally { sendingBusy = false; renderSendingControls(); }
 };
-$('exportHTML').onclick = () => { if (ensurePrepared()) download('CES_Email_' + stamp() + '.html', M.campaignHTML(draft()), 'text/html;charset=utf-8'); };
-$('exportText').onclick = () => { if (ensurePrepared()) download('CES_Email_' + stamp() + '.txt', M.plainText(draft()), 'text/plain;charset=utf-8'); };
-$('exportRecipientsCSV').onclick = () => { if (ensurePrepared()) download('CES_Recipients_' + stamp() + '.csv', M.safeCSV(recipients()), 'text/csv;charset=utf-8'); };
-$('exportRecipientsJSON').onclick = () => { if (ensurePrepared()) download('CES_Recipients_' + stamp() + '.json', recipients()); };
-$('exportPackage').onclick = () => { if (ensurePrepared()) download('CES_Campaign_' + stamp() + '.json', { schema: 'ces-maildesk-campaign-v1', preparedAt: new Date().toISOString(), audienceUpdatedAt: audienceTime, ...draft(), html: M.campaignHTML(draft()), text: M.plainText(draft()), recipients: recipients(), delivery: 'Not sent. Add individual unsubscribe links and refresh statuses before sending.' }); };
+$('year').textContent = new Date().getFullYear();
 window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('pagehide', () => {
   const id = dispatchCampaignId; stopDispatch();
