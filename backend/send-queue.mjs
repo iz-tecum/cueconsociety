@@ -1,8 +1,9 @@
-import { createGmailAdapter, gmailConfiguration, GmailError } from './gmail-adapter.mjs';
+import { createGmailAdapter, gmailConfiguration, gmailConfigurationFingerprint, GmailError } from './gmail-adapter.mjs';
 
 const encoder = new TextEncoder();
 const DAY = 86400000;
 const LEASE = 180000;
+const VERIFICATION_AGE = 3600000;
 const ID = /^[A-Za-z0-9_-]{8,80}$/;
 const CONTACT_ID = /^[a-f0-9]{64}$/;
 const STATES = ['prepared', 'queued', 'processing', 'sent', 'skipped', 'retry', 'needs_review', 'failed'];
@@ -46,19 +47,48 @@ async function detail(env, id) {
   const counts = await countJobs(env, id);
   return { campaign: publicCampaign(row, Object.values(counts).reduce((sum, n) => sum + n, 0)), counts };
 }
-async function recordCheck(env, identity, now) {
-  await env.DB.prepare("UPDATE send_control SET verified_principal=?,verified_from=?,verified_at=? WHERE id='gmail'")
-    .bind(identity.principal, identity.from, iso(now)).run();
+async function verifyConnection(env, adapter, now) {
+  const fingerprint = await gmailConfigurationFingerprint(env);
+  const attempt = `gmail-check-attempt:${crypto.randomUUID()}`;
+  await env.DB.batch([
+    env.DB.prepare("UPDATE send_control SET verified_principal=NULL,verified_from=NULL,verified_at=NULL WHERE id='gmail'"),
+    env.DB.prepare("DELETE FROM send_control WHERE id LIKE 'gmail-check:%' OR id LIKE 'gmail-check-attempt:%'"),
+    env.DB.prepare('INSERT INTO send_control(id) VALUES(?)').bind(attempt)
+  ]);
+  try {
+    const identity = await adapter.verify();
+    const config = gmailConfiguration(env);
+    if (!config.configured || identity.principal !== config.principal || identity.from !== config.from || fingerprint !== await gmailConfigurationFingerprint(env)) throw new GmailError('GOOGLE_CONFIGURATION_CHANGED');
+    const saved = await env.DB.batch([
+      env.DB.prepare("UPDATE send_control SET verified_principal=?,verified_from=?,verified_at=? WHERE id='gmail' AND EXISTS(SELECT 1 FROM send_control WHERE id=?)")
+        .bind(identity.principal, identity.from, iso(now), attempt),
+      env.DB.prepare('INSERT INTO send_control(id,verified_principal,verified_from,verified_at) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM send_control WHERE id=?) RETURNING id')
+        .bind(`gmail-check:${fingerprint}`, identity.principal, identity.from, iso(now), attempt),
+      env.DB.prepare('DELETE FROM send_control WHERE id=?').bind(attempt)
+    ]);
+    if (!saved[1].results.length) throw new GmailError('GOOGLE_CHECK_SUPERSEDED');
+    return identity;
+  } catch (error) {
+    await env.DB.prepare('DELETE FROM send_control WHERE id=?').bind(attempt).run();
+    throw error;
+  }
 }
 async function ensureControl(env) { await env.DB.prepare("INSERT OR IGNORE INTO send_control(id) VALUES('gmail')").run(); }
 export async function sendingStatus(env, now = Date.now()) {
   await ensureControl(env);
   const config = gmailConfiguration(env);
-  const saved = await env.DB.prepare("SELECT verified_principal,verified_from,verified_at FROM send_control WHERE id='gmail'").first();
-  const matches = saved?.verified_principal === config.principal && saved?.verified_from === config.from && Date.parse(saved?.verified_at) > now - 3600000;
+  const fingerprint = await gmailConfigurationFingerprint(env);
+  const saved = await env.DB.prepare(`SELECT c.verified_principal,c.verified_from,c.verified_at,
+    EXISTS(SELECT 1 FROM send_control p WHERE p.id=? AND p.verified_at=c.verified_at AND p.verified_principal=c.verified_principal AND p.verified_from=c.verified_from) AS configuration_matches
+    FROM send_control c WHERE c.id='gmail'`).bind(`gmail-check:${fingerprint}`).first();
+  const checkedAt = Date.parse(saved?.verified_at);
+  const matches = Boolean(config.configured && saved?.configuration_matches && saved?.verified_principal === config.principal && saved?.verified_from === config.from && checkedAt <= now && checkedAt > now - VERIFICATION_AGE);
   const lastCheck = saved?.verified_at ? { at: saved.verified_at, principal: saved.verified_principal, from: saved.verified_from } : null;
-  return { enabled: config.enabled, configured: config.configured, available: Boolean(config.enabled && config.configured && matches),
-    reason: config.enabled && config.configured && matches ? 'Connection checked. Sending requires an explicit campaign start and manual dispatch.' : config.reason,
+  const reason = !config.configured ? config.reason : !matches ? 'Google connection needs a fresh check. Checking sends no email.' : !config.enabled ? 'Google connection verified. Sending is disabled; no delivery test has been run.' : 'Google connection verified. Delivery has not been tested; sending requires an explicit campaign start and manual dispatch.';
+  return { enabled: config.enabled, configured: config.configured, available: Boolean(config.enabled && matches),
+    connectionVerified: matches, verificationExpiresAt: matches ? iso(checkedAt + VERIFICATION_AGE) : null,
+    connectionState: !config.configured ? 'not_configured' : matches ? 'verified' : 'check_required',
+    configurationMissing: config.configurationMissing, deliveryTested: false, reason,
     from: config.from, principal: config.principal, limits: config.limits, lastCheck, sendingPolicy: 'Manual dispatch only' };
 }
 
@@ -146,8 +176,7 @@ async function startCampaign(env, id, adapter, now) {
   if (!row) reject('Campaign not found.', 404);
   if (!row.from_email || row.from_email !== config.from) reject('The sender changed. Stage the saved draft again with the configured sender.', 409);
   if (row.status === 'completed') reject('This campaign is already completed.', 409);
-  const identity = await adapter.verify();
-  await recordCheck(env, identity, now);
+  await verifyConnection(env, adapter, now);
   await env.DB.batch([
     env.DB.prepare("UPDATE send_campaigns SET status='running',approved_at=?,updated_at=? WHERE id=? AND status IN ('staged','paused')").bind(iso(now), iso(now), id),
     env.DB.prepare("UPDATE send_jobs SET status='queued',updated_at=? WHERE campaign_id=? AND status='prepared'").bind(iso(now), id),
@@ -184,8 +213,7 @@ export async function dispatchOne(env, campaignId, { adapter = createGmailAdapte
       AND status IN ('queued','retry') RETURNING *`).bind(lease, now + LEASE, iso(now), campaignId, now).all();
     job = jobs.results[0];
     if (!job) { await finalizeCampaign(env, campaignId, now); return { result: 'idle', campaignId, ...await detail(env, campaignId) }; }
-    const identity = await adapter.verify();
-    await recordCheck(env, identity, now);
+    const identity = await verifyConnection(env, adapter, now);
     const contact = await env.DB.prepare('SELECT status,email FROM contacts WHERE id=?').bind(job.contact_id).first();
     campaign = await env.DB.prepare('SELECT * FROM send_campaigns WHERE id=?').bind(campaignId).first();
     if (campaign.status !== 'running') {
@@ -223,6 +251,9 @@ export async function dispatchOne(env, campaignId, { adapter = createGmailAdapte
     return { result: 'sent', campaignId, jobId: job.id, ...await detail(env, campaignId) };
   } catch (error) {
     if (!job) throw error;
+    const stillOwned = await env.DB.prepare(`SELECT 1 AS owned FROM send_control c JOIN send_jobs j ON j.id=?
+      WHERE c.id='gmail' AND c.lease_id=? AND c.lease_until>? AND j.lease_id=? AND j.status='processing'`).bind(job.id, lease, currentTime(), lease).first();
+    if (!stillOwned) return { result: 'blocked', reason: 'CLAIM_NO_LONGER_VALID', campaignId, jobId: job.id, ...await detail(env, campaignId) };
     const disposition = error instanceof GmailError ? error.disposition : 'unknown';
     const code = error instanceof GmailError ? error.code : 'DELIVERY_RESULT_UNKNOWN';
     const status = disposition === 'unknown' ? 'needs_review' : disposition === 'permanent' ? 'failed' : 'retry';
@@ -230,10 +261,10 @@ export async function dispatchOne(env, campaignId, { adapter = createGmailAdapte
     const exhausted = status === 'retry' && job.attempts >= 4;
     const finalStatus = exhausted ? 'failed' : status;
     await env.DB.batch([
-      env.DB.prepare('UPDATE send_jobs SET status=?,last_error=?,next_attempt_at=?,lease_id=NULL,lease_until=NULL,updated_at=? WHERE id=? AND lease_id=?')
-        .bind(finalStatus, code, now + delay, iso(now), job.id, lease),
-      env.DB.prepare("UPDATE send_campaigns SET status='paused',updated_at=? WHERE id=?").bind(iso(now), campaignId),
-      env.DB.prepare("UPDATE send_control SET next_send_at=MAX(next_send_at,?) WHERE id='gmail'").bind(now + (disposition === 'retry' ? delay : 0))
+      env.DB.prepare("UPDATE send_jobs SET status=?,last_error=?,next_attempt_at=?,lease_id=NULL,lease_until=NULL,updated_at=? WHERE id=? AND lease_id=? AND status='processing' AND EXISTS(SELECT 1 FROM send_control WHERE id='gmail' AND lease_id=?)")
+        .bind(finalStatus, code, now + delay, iso(now), job.id, lease, lease),
+      env.DB.prepare("UPDATE send_campaigns SET status='paused',updated_at=? WHERE id=? AND EXISTS(SELECT 1 FROM send_control WHERE id='gmail' AND lease_id=?)").bind(iso(now), campaignId, lease),
+      env.DB.prepare("UPDATE send_control SET next_send_at=MAX(next_send_at,?) WHERE id='gmail' AND lease_id=?").bind(now + (disposition === 'retry' ? delay : 0), lease)
     ]);
     return { result: finalStatus === 'needs_review' ? 'needs_review' : disposition === 'blocked' ? 'blocked' : finalStatus,
       reason: code, campaignId, jobId: job.id, nextAttemptAt: finalStatus === 'retry' ? now + delay : undefined, ...await detail(env, campaignId) };
@@ -248,7 +279,7 @@ export async function handleSending(request, env, { now = Date.now(), readJSON, 
   if (path === '/api/admin/sending/status' && request.method === 'GET') return reply(await sendingStatus(env, now));
   if (path === '/api/admin/sending/check' && request.method === 'POST') {
     await readJSON(request, 4096);
-    const identity = await adapter.verify(); await recordCheck(env, identity, now);
+    await verifyConnection(env, adapter, now);
     return reply(await sendingStatus(env, now));
   }
   if (path === '/api/admin/sending/campaigns' && request.method === 'POST') return reply(await stageCampaign(env, (await readJSON(request, 4096)).draftId, now));

@@ -106,6 +106,27 @@ The adapter checks userinfo email_verified, the exact principal, OAuth audience,
 send permission, and an actual accepted sendAs entry when an alias is used.
 A configured boolean is never treated as proof that an alias is verified.
 
+Connection readiness is distinct from delivery. Status reports configuration
+present, a recent verified Google connection, and sending enabled separately.
+The existing POST /sending/check is a no-send preflight: it reads identity and
+alias information, clears old verification first, and never creates or starts
+a campaign. A failed check leaves the connection unverified. Successful proof
+expires after one hour and is bound to the current private credentials, sender,
+principal and unsubscribe configuration. Rotating those values requires another
+check. The proof hash stays private in bounded send_control metadata; no schema
+change is needed. Status and Check never return credentials or token values.
+Each check owns a private attempt nonce, so a newer failed check cannot be
+overwritten by an older successful response. The access-token cache is bound
+to all three OAuth credentials, including the client secret.
+
+Additional status fields: connectionVerified, verificationExpiresAt (or null),
+configurationMissing (missing private field names only), connectionState
+(not_configured/check_required/verified), and deliveryTested. deliveryTested is
+false: this preflight does not test recipient delivery, spam placement or quota.
+available still requires configured, enabled and a current verified connection.
+All logged-in Maildesk administrators use the one owner-authorized server-side
+mailbox connection; logging in does not independently authorize a Google account.
+
 Manual workflow
 1. Save the draft and stage a campaign. This freezes the text/recipient selection
    and creates prepared jobs; it makes no Google request and sends nothing.

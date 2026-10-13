@@ -19,11 +19,25 @@ export function gmailConfiguration(env) {
   const from = address(env.GMAIL_FROM), principal = address(env.GMAIL_PRINCIPAL);
   let origin = '';
   try { const value = new URL(env.GMAIL_UNSUBSCRIBE_ORIGIN); if (value.protocol === 'https:' && value.origin === env.GMAIL_UNSUBSCRIBE_ORIGIN) origin = value.origin; } catch {}
-  const credentials = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN'].every(name => typeof env[name] === 'string' && env[name].length >= 8);
-  const configured = Boolean(credentials && from && principal && origin && typeof env.GMAIL_UNSUBSCRIBE_SECRET === 'string' && env.GMAIL_UNSUBSCRIBE_SECRET.length >= 32);
+  const fields = {
+    GMAIL_CLIENT_ID: typeof env.GMAIL_CLIENT_ID === 'string' && env.GMAIL_CLIENT_ID.length >= 8,
+    GMAIL_CLIENT_SECRET: typeof env.GMAIL_CLIENT_SECRET === 'string' && env.GMAIL_CLIENT_SECRET.length >= 8,
+    GMAIL_REFRESH_TOKEN: typeof env.GMAIL_REFRESH_TOKEN === 'string' && env.GMAIL_REFRESH_TOKEN.length >= 8,
+    GMAIL_PRINCIPAL: Boolean(principal), GMAIL_FROM: Boolean(from), GMAIL_UNSUBSCRIBE_ORIGIN: Boolean(origin),
+    GMAIL_UNSUBSCRIBE_SECRET: typeof env.GMAIL_UNSUBSCRIBE_SECRET === 'string' && env.GMAIL_UNSUBSCRIBE_SECRET.length >= 32
+  };
+  const configurationMissing = Object.keys(fields).filter(name => !fields[name]);
+  const configured = configurationMissing.length === 0;
   const enabled = env.GMAIL_SEND_ENABLED === 'true';
   const reason = !configured ? 'Google connection required; the sender must be the signed-in mailbox or a verified Gmail alias.' : !enabled ? 'Sending is disabled. Campaigns can be staged without sending.' : 'Verify the Google connection, then explicitly start and dispatch a campaign.';
-  return { enabled, configured, from, principal, origin, reason, limits: { rolling24Hours: bounded(env.GMAIL_DAILY_BUDGET, 1000, 2000), perMinute: bounded(env.GMAIL_RATE_PER_MINUTE, 20, 60) } };
+  return { enabled, configured, from, principal, origin, reason, configurationMissing,
+    limits: { rolling24Hours: bounded(env.GMAIL_DAILY_BUDGET, 1000, 2000), perMinute: bounded(env.GMAIL_RATE_PER_MINUTE, 20, 60) } };
+}
+
+export async function gmailConfigurationFingerprint(env) {
+  const names = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_PRINCIPAL', 'GMAIL_FROM', 'GMAIL_UNSUBSCRIBE_ORIGIN', 'GMAIL_UNSUBSCRIBE_SECRET'];
+  const bytes = new TextEncoder().encode(JSON.stringify(['ces-gmail-configuration-v1', ...names.map(name => env[name] ?? null)]));
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(value => value.toString(16).padStart(2, '0')).join('');
 }
 async function jsonResponse(response) { try { return await response.json(); } catch { return null; } }
 function retryAfter(response) {
@@ -39,7 +53,7 @@ export function createGmailAdapter(env, { fetchImpl = globalThis.fetch, clock = 
   const config = gmailConfiguration(env);
   async function accessToken() {
     if (!config.configured) throw new GmailError('GOOGLE_CONNECTION_REQUIRED');
-    const key = `${env.GMAIL_CLIENT_ID}\0${env.GMAIL_REFRESH_TOKEN}`;
+    const key = JSON.stringify([env.GMAIL_CLIENT_ID, env.GMAIL_CLIENT_SECRET, env.GMAIL_REFRESH_TOKEN]);
     const cached = tokenCache.get(key);
     if (cached && cached.expires > clock() + 60000) return cached.token;
     let result;

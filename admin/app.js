@@ -11,6 +11,7 @@ let audienceTime = '', draftId = '', dirty = false, prepared = false, busy = fal
 let messages = [], messagesLoaded = false, selectedMessageId = '';
 let sendingStatus = null, stagedCampaigns = [], stagedCampaignId = '', sendingCampaign = null;
 let sendingBusy = false, sendingLoaded = false, dispatchTimer = null, dispatchEpoch = 0, dispatchCampaignId = '';
+let verificationTimer = null;
 const pageSize = 50;
 const number = value => Number(value).toLocaleString();
 const statusLabel = value => value === 'cleaned' ? 'Undeliverable' : value[0].toUpperCase() + value.slice(1);
@@ -35,6 +36,7 @@ function showLogin(message = '') {
   csrfToken = ''; rows = []; drafts = []; selected.clear(); draftId = ''; dirty = false;
   messages = []; messagesLoaded = false; selectedMessageId = '';
   sendingStatus = null; stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; sendingLoaded = false;
+  if (verificationTimer !== null) clearTimeout(verificationTimer); verificationTimer = null;
   $('loginPanel').hidden = false; $('workspace').hidden = true; $('account').hidden = true;
   $('accountEmail').textContent = ''; $('loginPassword').value = ''; $('loginNotice').textContent = message;
   $('contacts').replaceChildren(); $('draftList').replaceChildren();
@@ -269,9 +271,24 @@ async function prepare() {
   } catch (error) { notice(error.message, true); } finally { setBusy(false); }
 }
 function sendingNote(message) { $('sendingProgress').textContent = message; }
+function connectionVerified() {
+  return sendingStatus?.configured === true && sendingStatus?.connectionVerified === true && Date.parse(sendingStatus.verificationExpiresAt) > Date.now();
+}
+function sendingReady() {
+  return connectionVerified() && sendingStatus?.enabled === true && sendingStatus?.available === true;
+}
+function setSendingStatus(value) {
+  sendingStatus = value;
+  if (verificationTimer !== null) clearTimeout(verificationTimer); verificationTimer = null;
+  const expiresIn = Date.parse(value?.verificationExpiresAt) - Date.now();
+  if (Number.isFinite(expiresIn) && expiresIn > 0) verificationTimer = setTimeout(() => { verificationTimer = null; renderSendingControls(); }, Math.min(expiresIn + 50, 2147483647));
+}
+function invalidateSendingVerification() {
+  if (sendingStatus) setSendingStatus({ ...sendingStatus, connectionVerified: false, verificationExpiresAt: null, available: false, lastCheck: null, connectionState: sendingStatus.configured ? 'check_required' : 'not_configured' });
+}
 function renderSendingControls() {
   const active = Boolean(dispatchCampaignId), locked = busy || sendingBusy;
-  const ready = sendingStatus?.enabled === true && sendingStatus?.configured === true && sendingStatus?.available === true;
+  const verified = connectionVerified(), ready = sendingReady();
   const status = sendingCampaign?.status;
   $('stageCampaign').disabled = locked || active || !recipients().length;
   $('stagedCampaigns').disabled = locked || active;
@@ -279,9 +296,7 @@ function renderSendingControls() {
   $('startSending').disabled = locked || active || !ready || !stagedCampaignId || !['staged', 'paused', 'running'].includes(status);
   $('pauseSending').disabled = sendingBusy || !(active || status === 'running');
   if (!sendingStatus) return;
-  const state = sendingStatus.enabled ? (ready ? 'Ready' : 'Sending unavailable') : 'Sending off';
-  const connection = !sendingStatus.configured ? 'Google not connected' : sendingStatus.lastCheck ? 'Google connected' : 'Check Google connection';
-  $('sendingStatus').textContent = state + ' · ' + connection;
+  $('sendingStatus').textContent = !sendingStatus.configured ? 'Sending off · Google not connected' : !verified ? 'Sending off · Google check required' : !sendingStatus.enabled ? 'Google verified · Sending off' : ready ? 'Ready to start · Google verified' : 'Google verified · Sending unavailable';
   $('sendingFrom').textContent = 'From ' + (sendingStatus.from || '—');
 }
 function renderStagedCampaigns() {
@@ -307,21 +322,23 @@ async function refreshSendingCampaign() {
 }
 async function loadSending() {
   if (sendingBusy) return; sendingBusy = true; renderSendingControls();
+  let statusReceived = false;
   try {
-    sendingStatus = await api('/api/admin/sending/status');
+    setSendingStatus(await api('/api/admin/sending/status')); statusReceived = true;
     const data = await api('/api/admin/sending/campaigns'); stagedCampaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
     sendingLoaded = true; renderStagedCampaigns();
     if (stagedCampaignId) await refreshSendingCampaign();
-  } catch (error) { sendingNote(error.message); }
+  } catch (error) { if (!statusReceived) invalidateSendingVerification(); sendingNote(error.message); }
   finally { sendingBusy = false; renderSendingControls(); }
 }
 async function checkSending() {
   if (busy || sendingBusy || dispatchCampaignId || !sendingStatus?.configured) return;
+  invalidateSendingVerification();
   sendingBusy = true; renderSendingControls();
   try {
     await api('/api/admin/sending/check', { method: 'POST', body: {} });
-    sendingStatus = await api('/api/admin/sending/status'); sendingNote('Google identity checked. Nothing sent.');
-  } catch (error) { sendingNote(error.message); }
+    setSendingStatus(await api('/api/admin/sending/status')); sendingNote(connectionVerified() ? 'Google identity verified. Nothing sent.' : 'Google connection is not verified. Nothing sent.');
+  } catch (error) { invalidateSendingVerification(); sendingNote(error.message); }
   finally { sendingBusy = false; renderSendingControls(); }
 }
 async function stageCampaign() {
@@ -367,14 +384,16 @@ function scheduleDispatch(id, epoch) {
       sendingCampaign = data.campaign || sendingCampaign;
       sendingNote(campaignProgress(data) + ' · ' + String(data.result || 'unknown'));
       if (!['sent', 'skipped'].includes(data.result) || data.campaign?.id !== id || data.campaign?.status !== 'running') {
-        const result = String(data.result || 'unknown'); stopDispatch();
+        const result = String(data.result || 'unknown');
+        if (!['sent', 'skipped', 'idle', 'paced', 'budget'].includes(result) || data.campaign?.id !== id) invalidateSendingVerification();
+        stopDispatch();
         sendingNote(campaignProgress(data) + ' · ' + (sendingCampaign?.status === 'completed' ? 'Completed.' : 'Stopped (' + result.replaceAll('_', ' ') + '). Review before restarting.'));
         return;
       }
       renderSendingControls(); scheduleDispatch(id, epoch);
     } catch (error) {
       if (epoch !== dispatchEpoch) return;
-      stopDispatch(); sendingNote('Stopped. ' + error.message + ' Review status before restarting.');
+      invalidateSendingVerification(); stopDispatch(); sendingNote('Stopped. ' + error.message + ' Review status before restarting.');
     }
   }, 3100);
 }
@@ -383,8 +402,8 @@ async function startSending() {
   const requestedEpoch = dispatchEpoch;
   sendingBusy = true; renderSendingControls();
   try {
-    sendingStatus = await api('/api/admin/sending/status'); await refreshSendingCampaign();
-    if (!sendingStatus.enabled || !sendingStatus.configured || !sendingStatus.available) return sendingNote('Sending is not available. Check the Google connection.');
+    setSendingStatus(await api('/api/admin/sending/status')); await refreshSendingCampaign();
+    if (!sendingReady()) return sendingNote('Sending is not available. Check the Google connection.');
     if (!['staged', 'paused', 'running'].includes(sendingCampaign?.status)) return sendingNote('This campaign cannot be started.');
     const id = stagedCampaignId, count = number(sendingCampaign.recipientCount || 0), from = sendingStatus.from;
     if (!from) return sendingNote('A verified From address is required.');
@@ -399,7 +418,7 @@ async function startSending() {
     if (sendingCampaign.status !== 'running') { const fresh = await refreshSendingCampaign(); if (fresh?.campaign?.status !== 'running') throw Error('The server did not confirm a running campaign.'); }
     stopDispatch(); dispatchCampaignId = id; const epoch = dispatchEpoch;
     sendingNote('Sending started. Keep this page open; Pause stops further requests.'); scheduleDispatch(id, epoch);
-  } catch (error) { stopDispatch(); sendingNote(error.message); }
+  } catch (error) { invalidateSendingVerification(); stopDispatch(); sendingNote(error.message); }
   finally { sendingBusy = false; renderSendingControls(); }
 }
 $('loginForm').addEventListener('submit', async event => {
