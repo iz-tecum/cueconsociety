@@ -9,7 +9,7 @@ const SEND_SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const ALIAS_SCOPE = 'https://www.googleapis.com/auth/gmail.settings.basic';
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CALLBACK_PATH = '/oauth/callback';
-const usage = 'Use --config /absolute/private/config.json --client /absolute/private/google-desktop-client.json [--principal mailbox@example.edu] [--from sender@example.edu].';
+const usage = 'Use --config /absolute/private/config.json --client /absolute/private/google-desktop-client.json [--principal mailbox@example.edu] [--from sender@example.edu] [--allow-pending-alias true].';
 const fail = message => { throw new Error(message); };
 const email = value => typeof value === 'string' && /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,63}$/i.test(value.trim()) && value.trim().length <= 254 ? value.trim().toLowerCase() : '';
 
@@ -17,10 +17,11 @@ export function parseArguments(argv) {
   const result = {};
   if (argv.length % 2) fail(usage);
   for (let i = 0; i < argv.length; i += 2) {
-    if (!['--config', '--client', '--principal', '--from'].includes(argv[i]) || !argv[i + 1] || result[argv[i]]) fail(usage);
+    if (!['--config', '--client', '--principal', '--from', '--allow-pending-alias'].includes(argv[i]) || !argv[i + 1] || result[argv[i]]) fail(usage);
     result[argv[i]] = argv[i + 1];
   }
   if (!result['--config'] || !result['--client']) fail(usage);
+  if (result['--allow-pending-alias'] !== undefined && !['true', 'false'].includes(result['--allow-pending-alias'])) fail('Use true or false for --allow-pending-alias.');
   return result;
 }
 
@@ -60,7 +61,7 @@ export function connectionOptions(config, clientJson, overrides = {}) {
   if (client.auth_uri !== 'https://accounts.google.com/o/oauth2/auth' || client.token_uri !== 'https://oauth2.googleapis.com/token') fail('The OAuth client must use the standard Google endpoints.');
   if (!Array.isArray(client.redirect_uris) || !client.redirect_uris.some(uri => uri === 'http://localhost' || uri === 'http://127.0.0.1')) fail('The Desktop client must allow a localhost loopback redirect.');
   const scopes = ['openid', 'email', SEND_SCOPE, ...(from !== principal ? [ALIAS_SCOPE] : [])];
-  return { principal, from, clientId: client.client_id, clientSecret: client.client_secret, scopes };
+  return { principal, from, clientId: client.client_id, clientSecret: client.client_secret, scopes, allowPendingAlias: overrides.allowPendingAlias === true };
 }
 
 export function createAuthorization(options, redirectUri) {
@@ -125,21 +126,28 @@ export async function completeAuthorization(options, authorization, { fetchImpl 
   const tokens = await googleJson(fetchImpl, 'https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: options.clientId, client_secret: options.clientSecret, code: authorization.code, code_verifier: authorization.verifier, redirect_uri: authorization.redirectUri, grant_type: 'authorization_code' }).toString() });
   if (typeof tokens.access_token !== 'string' || tokens.access_token.length < 8 || typeof tokens.refresh_token !== 'string' || tokens.refresh_token.length < 8 || String(tokens.token_type).toLowerCase() !== 'bearer') fail('Google did not return offline access. No credentials were saved.');
   const scopes = new Set(String(tokens.scope || '').split(/\s+/));
-  if (!scopes.has(SEND_SCOPE) || (options.from !== options.principal && !scopes.has(ALIAS_SCOPE))) fail('The required Gmail permissions were not granted.');
+  if (!scopes.has('openid') || !(scopes.has('email') || scopes.has('https://www.googleapis.com/auth/userinfo.email')) || !scopes.has(SEND_SCOPE) || (options.from !== options.principal && !scopes.has(ALIAS_SCOPE))) fail('The required Gmail permissions were not granted.');
   const headers = { Authorization: `Bearer ${tokens.access_token}` };
   const user = await googleJson(fetchImpl, 'https://openidconnect.googleapis.com/v1/userinfo', { method: 'GET', headers });
   if (user.email_verified !== true || email(user.email) !== options.principal || typeof user.sub !== 'string' || !user.sub) fail('The authorized Google account does not match the expected verified mailbox.');
+  let aliasVerified = true;
   if (options.from !== options.principal) {
     const aliases = await googleJson(fetchImpl, 'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', { method: 'GET', headers });
-    if (!Array.isArray(aliases.sendAs) || !aliases.sendAs.some(alias => email(alias.sendAsEmail) === options.from && alias.verificationStatus === 'accepted')) fail('The sender is not an accepted Gmail alias. No alias was created and no email was sent.');
+    if (!Array.isArray(aliases?.sendAs) || aliases.sendAs.some(alias => !alias || typeof alias !== 'object' || !email(alias.sendAsEmail))) fail('Google returned an invalid sender response. No credentials were saved.');
+    const matching = aliases.sendAs.filter(alias => email(alias.sendAsEmail) === options.from);
+    if (matching.length > 1 || (matching.length && !['accepted', 'pending'].includes(matching[0].verificationStatus))) fail('Google returned an invalid sender response. No credentials were saved.');
+    aliasVerified = matching.length === 1 && matching[0].verificationStatus === 'accepted';
+    if (!aliasVerified && options.allowPendingAlias !== true) fail('The sender is not an accepted Gmail alias. No alias was created and no email was sent.');
   }
-  return { GMAIL_CLIENT_ID: options.clientId, GMAIL_CLIENT_SECRET: options.clientSecret, GMAIL_REFRESH_TOKEN: tokens.refresh_token, GMAIL_PRINCIPAL: options.principal, GMAIL_FROM: options.from, GMAIL_SEND_ENABLED: 'false' };
+  return { GMAIL_CLIENT_ID: options.clientId, GMAIL_CLIENT_SECRET: options.clientSecret, GMAIL_REFRESH_TOKEN: tokens.refresh_token, GMAIL_PRINCIPAL: options.principal, GMAIL_FROM: options.from, GMAIL_SEND_ENABLED: 'false',
+    aliasVerified, connectionPending: aliasVerified ? null : 'sender_verification' };
 }
 
 export async function saveConnection(snapshot, connection) {
   const current = await readPrivateJson(snapshot.filename);
   if (current.source !== snapshot.source) fail('The config changed during authorization. No credentials were saved.');
-  const updated = { ...current.value, ...connection, GMAIL_SEND_ENABLED: 'false' };
+  const { aliasVerified, connectionPending, ...credentials } = connection;
+  const updated = { ...current.value, ...credentials, GMAIL_SEND_ENABLED: 'false' };
   if (!updated.GMAIL_UNSUBSCRIBE_SECRET) updated.GMAIL_UNSUBSCRIBE_SECRET = randomBytes(32).toString('base64url');
   const temporary = `${snapshot.filename}.${randomBytes(12).toString('hex')}.tmp`;
   let handle;
@@ -159,11 +167,12 @@ export async function run(argv, dependencies = {}) {
   const config = await readPrivateJson(flags['--config']);
   const client = await readPrivateJson(flags['--client']);
   if (config.filename === client.filename) fail('Config and OAuth client must be different files.');
-  const options = connectionOptions(config.value, client.value, { principal: flags['--principal'], from: flags['--from'] });
+  const options = connectionOptions(config.value, client.value, { principal: flags['--principal'], from: flags['--from'], allowPendingAlias: flags['--allow-pending-alias'] === 'true' });
   const authorization = await (dependencies.receiveAuthorization || receiveAuthorization)(options, dependencies);
   const connection = await completeAuthorization(options, authorization, dependencies);
   await saveConnection(config, connection);
-  return { connected: true, principal: options.principal, from: options.from, sendingEnabled: false };
+  return { connected: connection.aliasVerified, oauthConnected: true, principal: options.principal, from: options.from, sendingEnabled: false,
+    aliasVerified: connection.aliasVerified, connectionPending: connection.connectionPending };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

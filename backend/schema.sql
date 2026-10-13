@@ -89,3 +89,32 @@ CREATE TABLE IF NOT EXISTS send_control (
   verified_at TEXT
 );
 INSERT OR IGNORE INTO send_control(id) VALUES('gmail');
+CREATE TABLE IF NOT EXISTS google_connections (
+  google_sub TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  client_id TEXT NOT NULL,
+  refresh_ciphertext TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS google_session_connections (
+  session_hash TEXT PRIMARY KEY REFERENCES sessions(token_hash) ON DELETE CASCADE,
+  google_sub TEXT NOT NULL REFERENCES google_connections(google_sub),
+  connected_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS google_session_identity ON google_session_connections(google_sub);
+CREATE TABLE IF NOT EXISTS google_oauth_states (
+  state_hash TEXT PRIMARY KEY,
+  session_hash TEXT NOT NULL REFERENCES sessions(token_hash) ON DELETE CASCADE,
+  binding_hash TEXT NOT NULL,
+  pkce_ciphertext TEXT NOT NULL,
+  client_id TEXT NOT NULL,
+  consumed_at INTEGER,
+  expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS google_oauth_session ON google_oauth_states(session_hash);
+CREATE INDEX IF NOT EXISTS google_oauth_expiry ON google_oauth_states(expires_at);
+CREATE TABLE IF NOT EXISTS google_campaign_owners (
+  campaign_id TEXT PRIMARY KEY REFERENCES send_campaigns(id) ON DELETE CASCADE,
+  google_sub TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS google_campaign_identity ON google_campaign_owners(google_sub);

@@ -98,6 +98,18 @@ The helper prints Google's consent URL, uses a localhost callback with PKCE and
 state, and saves credentials only to the private config. It always leaves
 GMAIL_SEND_ENABLED="false". It does not create or verify an alias or send email.
 
+Optional preparation while the sender alias is still missing or pending:
+append --allow-pending-alias true to the helper command. This explicit opt-in
+can save the verified mailbox's OAuth credentials with sending still disabled.
+It reports oauthConnected:true, connected:false, aliasVerified:false and
+connectionPending:sender_verification. The
+default remains strict: an unaccepted alias aborts without saving. Wrong account,
+missing permissions, malformed responses and Google/API errors always abort,
+including in preparation mode. No alias is created and no verification email is
+sent. The runtime still checks Google's accepted alias before it can start or
+send; saved credentials alone do not establish sender readiness. These result
+flags are not stored as authorization claims in the private configuration.
+
 Direct mailbox scopes: openid, email, and gmail.send.
 If the sender differs from the mailbox, gmail.settings.basic is additionally
 needed to read its existing send-as aliases. That scope can also edit settings;
@@ -138,6 +150,65 @@ Manual workflow
 4. Explicitly dispatch one job, or use a manually started UI chunk. Every job
    rechecks identity and current subscription status. Pause stops future jobs;
    it cannot recall a message already in flight. There is no background resume.
+
+Per-admin Columbia Google connections (hosted or portable)
+Set GOOGLE_SESSION_OAUTH_ENABLED="true" to use each CES admin's own Google
+mailbox instead of the legacy single-mailbox configuration. The existing CES
+login is always required. A Columbia Google login alone cannot create an admin
+session. Google must confirm email_verified and an exact @columbia.edu address.
+The sender is that verified address, not a form field or the shared CES login.
+
+GOOGLE_CLIENT_ID             Google Web OAuth client ID.
+GOOGLE_CLIENT_SECRET         Its private client secret.
+GOOGLE_REDIRECT_URI          Exact HTTPS callback on this application's origin.
+                            https://admin.cueconsociety.com/api/admin/google/callback
+GOOGLE_TOKEN_ENCRYPTION_KEY  32 random bytes encoded as unpadded base64url.
+GOOGLE_SESSION_OAUTH_ENABLED Literal "true" selects session-based connections.
+
+Only openid, email and gmail.send are requested. No alias-settings scope is
+needed. Keep GMAIL_UNSUBSCRIBE_ORIGIN and GMAIL_UNSUBSCRIBE_SECRET stable and
+GMAIL_SEND_ENABLED="false" while preparing/verifying connections. Connecting
+never starts, resumes or dispatches a campaign. It leaves that global setting
+unchanged. The application budget remains shared across all connected accounts:
+default 1000 attempts per rolling 24 hours, at most 20 per minute. These are
+application caps, not a guarantee of each mailbox's remaining Google allowance.
+
+POST /api/admin/google/start      {} -> {url}; navigate to the returned Google URL.
+GET  /api/admin/google/callback   Fixed callback landing, no token exchange here.
+POST /api/admin/google/complete   Callback's same-origin finalization only.
+POST /api/admin/google/disconnect {} -> {connected:false}; local session only.
+GET  /api/admin/google/status     Current CES session's connection status only.
+All POSTs require the existing CES session, exact Origin and CSRF. The callback
+landing instead validates a short-lived HttpOnly Secure SameSite=Lax binding
+cookie and pending state. Its static script clears the callback URL and finishes
+from the same origin, where the original Strict CES cookie is available. The
+final POST also requires the original session, binding cookie and one-use state.
+PKCE/state expire after ten minutes; newer starts or disconnects supersede older
+in-flight completions. A logged-out/expired session cannot finish authorization.
+
+The sending-status response adds oauthRequired, oauthAvailable, oauthConnected
+and oauthEmail. oauthRequired is true exactly when session OAuth is enabled;
+false explicitly selects the existing legacy CLI configuration. Missing or
+unavailable configuration in session mode never falls back to legacy credentials.
+Credentials never reach the frontend. Refresh tokens are encrypted with AES-GCM
+using fresh nonces and Google subject/client-specific authenticated context.
+Each CES session has its own active connection. Readiness proofs and campaigns
+are bound to the verified Google subject. Another Google account cannot list,
+start, pause or dispatch those campaigns. Existing unowned legacy campaigns are
+not available in session mode; stage a fresh copy of the saved draft instead.
+The last pre-send reservation also checks that the session is still active and
+still linked to that Google subject. Disconnect prevents future dispatches but
+cannot recall a message already in flight. It never revokes another session's
+Google authorization and makes no external request.
+
+Deployment: schema.sql appends google_connections, google_session_connections,
+google_oauth_states (including consumed_at), google_campaign_owners and indexes.
+SQLiteStore applies these additive CREATE TABLE/INDEX IF NOT EXISTS statements
+on startup. For hosted D1, apply the matching schema-only migration before
+deploying the worker; request handlers never run schema changes. Existing
+contacts, suppression, drafts, jobs and unsubscribe secrets are preserved.
+Test with node --test backend/tests/google-session.test.mjs; all Google calls in
+that suite are mocked, including any provider-send endpoint.
 
 API (all admin routes require login; POSTs also require Origin and CSRF)
 GET  /api/admin/sending/status

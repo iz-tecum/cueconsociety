@@ -1,6 +1,7 @@
 import { importRecords } from './import.mjs';
 import { handleSending, handleUnsubscribe, SendingError } from './send-queue.mjs';
 import { GmailError } from './gmail-adapter.mjs';
+import { GoogleConnectionError, handleGoogleSession, googleCallbackPage, sessionSendingEnvironment } from './google-session.mjs';
 
 const STATUSES = new Set(['subscribed', 'unsubscribed', 'cleaned', 'archived', 'pending']);
 const SUPPRESSED = new Set(['unsubscribed', 'cleaned', 'archived']);
@@ -262,12 +263,17 @@ async function updateStatus(body, env, now) {
   const changes = await env.DB.batch(statements);
   return response({ ok: true, updated: changes.slice(0, -1).reduce((total, result) => total + result.meta.changes, 0), updatedAt: at });
 }
-async function admin(request, env, now, url, gmailFetch) {
+async function admin(request, env, now, url, gmailFetch, googleFetch, clock) {
   const path = url.pathname;
   if (path === '/api/admin/login' && request.method === 'POST') return login(request, env, now);
+  if (path === '/api/admin/google/callback') return googleCallbackPage(request, env, now);
   const write = !['GET', 'HEAD'].includes(request.method);
   const session = await authenticate(request, env, now, write);
-  if (path.startsWith('/api/admin/sending/')) return handleSending(request, env, { now, readJSON, fetchImpl: gmailFetch });
+  if (path.startsWith('/api/admin/google/')) return handleGoogleSession(request, env, { sessionHash: await sha256(session.token), now, clock, readJSON, fetchImpl: googleFetch });
+  if (path.startsWith('/api/admin/sending/')) {
+    const scoped = await sessionSendingEnvironment(env, await sha256(session.token), now);
+    return handleSending(request, scoped.env, { now, readJSON, fetchImpl: gmailFetch, oauthStatus: scoped.status });
+  }
   if (path === '/api/admin/session' && request.method === 'GET') return response({ ok: true, email: session.email, csrfToken: session.csrfToken });
   if (path === '/api/admin/logout' && request.method === 'POST') {
     await env.DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(await sha256(session.token)).run();
@@ -315,7 +321,7 @@ async function admin(request, env, now, url, gmailFetch) {
   fail('Not found.', 404);
 }
 
-export function createWorker({ clock = Date.now, gmailFetch } = {}) {
+export function createWorker({ clock = Date.now, gmailFetch, googleFetch } = {}) {
   return { async fetch(request, env) {
     const url = new URL(request.url), now = clock();
     const isPublic = ['/api/newsletter', '/api/contact'].includes(url.pathname);
@@ -332,7 +338,7 @@ export function createWorker({ clock = Date.now, gmailFetch } = {}) {
         for (const [name, value] of Object.entries(cors)) result.headers.set(name, value);
         return result;
       }
-      if (url.pathname.startsWith('/api/admin/')) return await admin(request, env, now, url, gmailFetch);
+      if (url.pathname.startsWith('/api/admin/')) return await admin(request, env, now, url, gmailFetch, googleFetch, clock);
       if (url.pathname.startsWith('/api/')) fail('Not found.', 404);
       if (!['GET', 'HEAD'].includes(request.method)) fail('Not found.', 404);
       if (!env.ASSETS) fail('Not found.', 404);
@@ -346,7 +352,7 @@ export function createWorker({ clock = Date.now, gmailFetch } = {}) {
       }
       return new Response(result.body, { status: result.status, statusText: result.statusText, headers });
     } catch (error) {
-      const known = error instanceof HttpError || error instanceof SendingError;
+      const known = error instanceof HttpError || error instanceof SendingError || error instanceof GoogleConnectionError;
       const status = known ? error.status : error instanceof GmailError ? 409 : 503;
       return response({ ok: false, error: known ? error.message : error instanceof GmailError ? error.code : 'Service is temporarily unavailable. Please try again later.' }, status, { ...cors, ...(status === 429 ? { 'Retry-After': '3600' } : {}) });
     }

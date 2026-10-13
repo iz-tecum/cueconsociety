@@ -28,9 +28,9 @@
 <div class="prepare"><div><h2>Export campaign</h2><p>Download the draft and recipients.</p></div><button id="prepare">Prepare exports</button></div>
 <div id="exports" class="exports" hidden><p id="exportSummary"></p><div><button id="exportHTML" class="quiet">Email · HTML</button><button id="exportText" class="quiet">Email · text</button><button id="exportRecipientsCSV" class="quiet">Recipients · CSV</button><button id="exportRecipientsJSON" class="quiet">Recipients · JSON</button><button id="exportPackage" class="quiet">Campaign · JSON</button></div><p class="helper">Add individual unsubscribe links and recheck statuses before sending.</p></div>
 <section class="sending-controls" aria-label="Campaign sending">
-<div class="sending-heading"><div><h2>Sending</h2><p id="sendingStatus">Sending off · Google not connected</p><p id="sendingFrom" class="helper">From —</p></div><button id="checkSending" class="quiet" disabled>Check Google connection</button></div>
+<div class="sending-heading"><div><h2>Sending</h2><p id="sendingStatus">Sending off · Google not connected</p><p id="sendingFrom" class="helper">From —</p></div><div class="sending-actions"><button id="connectGoogle" class="quiet" disabled>Connect Columbia Google</button><button id="disconnectGoogle" class="quiet" hidden disabled>Disconnect</button><button id="checkSending" class="quiet" disabled>Check Google connection</button></div></div>
 <div class="sending-actions"><button id="stageCampaign" class="quiet">Stage campaign</button><label class="sr-only" for="stagedCampaigns">Staged campaigns</label><select id="stagedCampaigns"><option value="">Staged campaigns</option></select><button id="startSending" disabled>Start sending</button><button id="pauseSending" class="quiet" disabled>Pause</button></div>
-<p id="sendingProgress" class="helper" role="status">Stage saves a fixed copy. Sending requires Start and runs only while this page stays open.</p>
+<p id="sendingProgress" class="helper" role="status">Stage saves a fixed copy. Sending requires Start and runs only while this page stays open. Daily limits may require several sessions.</p>
 </section>
 </section>
 <section id="inboxPanel" aria-label="Contact form inbox" hidden>

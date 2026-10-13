@@ -12,6 +12,9 @@ let messages = [], messagesLoaded = false, selectedMessageId = '';
 let sendingStatus = null, stagedCampaigns = [], stagedCampaignId = '', sendingCampaign = null;
 let sendingBusy = false, sendingLoaded = false, dispatchTimer = null, dispatchEpoch = 0, dispatchCampaignId = '';
 let verificationTimer = null;
+const returnParams = new URLSearchParams(location.search);
+let googleReturn = ['connected', 'error'].includes(returnParams.get('google')) ? returnParams.get('google') : '';
+if (googleReturn) { returnParams.delete('google'); history.replaceState(null, '', location.pathname + (returnParams.size ? '?' + returnParams.toString() : '') + location.hash); }
 const pageSize = 50;
 const number = value => Number(value).toLocaleString();
 const statusLabel = value => value === 'cleaned' ? 'Undeliverable' : value[0].toUpperCase() + value.slice(1);
@@ -42,6 +45,7 @@ function showLogin(message = '') {
   $('contacts').replaceChildren(); $('draftList').replaceChildren();
   $('messageList').replaceChildren(); $('messageDetail').replaceChildren();
   $('stagedCampaigns').replaceChildren(); $('sendingProgress').textContent = ''; $('sendingFrom').textContent = 'From —';
+  $('sendingStatus').textContent = 'Sending off · Google not connected'; renderSendingControls();
   for (const id of ['subject', 'preheader', 'body']) $(id).value = '';
   $('preview').srcdoc = ''; hideExports();
 }
@@ -158,6 +162,7 @@ async function enterSession(session) {
     preview();
   } catch (error) { notice(error.message, true); }
   finally { setBusy(false); }
+  if (googleReturn) switchPanel('campaign');
 }
 function switchPanel(which) {
   for (const [panel, tab, name] of [['audiencePanel', 'tabAudience', 'audience'], ['campaignPanel', 'tabCampaign', 'campaign'], ['inboxPanel', 'tabInbox', 'inbox']]) {
@@ -271,8 +276,11 @@ async function prepare() {
   } catch (error) { notice(error.message, true); } finally { setBusy(false); }
 }
 function sendingNote(message) { $('sendingProgress').textContent = message; }
+function hasSenderConnection() {
+  return sendingStatus?.oauthConnected === true || sendingStatus?.oauthRequired === false;
+}
 function connectionVerified() {
-  return sendingStatus?.configured === true && sendingStatus?.connectionVerified === true && Date.parse(sendingStatus.verificationExpiresAt) > Date.now();
+  return hasSenderConnection() && sendingStatus?.configured === true && sendingStatus?.connectionVerified === true && Date.parse(sendingStatus.verificationExpiresAt) > Date.now();
 }
 function sendingReady() {
   return connectionVerified() && sendingStatus?.enabled === true && sendingStatus?.available === true;
@@ -292,14 +300,18 @@ function renderSendingControls() {
   const status = sendingCampaign?.status;
   $('stageCampaign').disabled = locked || active || !recipients().length;
   $('stagedCampaigns').disabled = locked || active;
-  $('checkSending').disabled = locked || active || !sendingStatus?.configured;
+  $('connectGoogle').disabled = locked || active || !csrfToken || sendingStatus?.oauthAvailable !== true;
+  $('disconnectGoogle').hidden = sendingStatus?.oauthConnected !== true;
+  $('disconnectGoogle').disabled = locked || active || !csrfToken || sendingStatus?.oauthConnected !== true;
+  $('checkSending').disabled = locked || active || !sendingStatus?.configured || !hasSenderConnection();
   $('startSending').disabled = locked || active || !ready || !stagedCampaignId || !['staged', 'paused', 'running'].includes(status);
   $('pauseSending').disabled = sendingBusy || !(active || status === 'running');
   if (!sendingStatus) return;
-  $('sendingStatus').textContent = !sendingStatus.configured ? 'Sending off · Google not connected' : !verified ? 'Sending off · Google check required' : !sendingStatus.enabled ? 'Google verified · Sending off' : ready ? 'Ready to start · Google verified' : 'Google verified · Sending unavailable';
+  $('sendingStatus').textContent = !hasSenderConnection() || (!sendingStatus.configured && sendingStatus.oauthRequired === false) ? 'Sending off · Google not connected' : !sendingStatus.configured ? 'Sending off · Google setup unavailable' : !verified ? 'Sending off · Google check required' : !sendingStatus.enabled ? 'Google verified · Sending off' : ready ? 'Ready to start · Google verified' : 'Google verified · Sending unavailable';
   $('sendingFrom').textContent = 'From ' + (sendingStatus.from || '—');
 }
 function renderStagedCampaigns() {
+  if (!stagedCampaigns.some(campaign => String(campaign.id) === stagedCampaignId)) { stagedCampaignId = ''; sendingCampaign = null; }
   $('stagedCampaigns').replaceChildren();
   const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Staged campaigns'; $('stagedCampaigns').append(placeholder);
   for (const campaign of stagedCampaigns) {
@@ -328,11 +340,15 @@ async function loadSending() {
     const data = await api('/api/admin/sending/campaigns'); stagedCampaigns = Array.isArray(data.campaigns) ? data.campaigns : [];
     sendingLoaded = true; renderStagedCampaigns();
     if (stagedCampaignId) await refreshSendingCampaign();
+    if (googleReturn) {
+      sendingNote(googleReturn === 'error' ? 'Google connection was not completed. Try again.' : sendingStatus.oauthConnected ? 'Google connected for this session. Nothing sent.' : 'Google is not connected for this session.');
+      googleReturn = '';
+    }
   } catch (error) { if (!statusReceived) invalidateSendingVerification(); sendingNote(error.message); }
   finally { sendingBusy = false; renderSendingControls(); }
 }
 async function checkSending() {
-  if (busy || sendingBusy || dispatchCampaignId || !sendingStatus?.configured) return;
+  if (busy || sendingBusy || dispatchCampaignId || !sendingStatus?.configured || !hasSenderConnection()) return;
   invalidateSendingVerification();
   sendingBusy = true; renderSendingControls();
   try {
@@ -340,6 +356,31 @@ async function checkSending() {
     setSendingStatus(await api('/api/admin/sending/status')); sendingNote(connectionVerified() ? 'Google identity verified. Nothing sent.' : 'Google connection is not verified. Nothing sent.');
   } catch (error) { invalidateSendingVerification(); sendingNote(error.message); }
   finally { sendingBusy = false; renderSendingControls(); }
+}
+async function connectGoogle() {
+  if (busy || sendingBusy || dispatchCampaignId || !csrfToken || sendingStatus?.oauthAvailable !== true) return;
+  if (dirty && !await ask('Open Google?', 'Unsaved draft changes will be lost. Save your draft first, or continue to connect Google.', 'Continue')) return;
+  sendingBusy = true; renderSendingControls();
+  try {
+    const data = await api('/api/admin/google/start', { method: 'POST', body: {} });
+    const destination = new URL(data.url);
+    if (destination.origin !== 'https://accounts.google.com' || destination.username || destination.password || !['/o/oauth2/v2/auth', '/o/oauth2/auth'].includes(destination.pathname)) throw Error('Google returned an invalid connection address.');
+    dirty = false; window.location.assign(destination.href);
+  } catch (error) { sendingNote(error.message); sendingBusy = false; renderSendingControls(); }
+}
+async function disconnectGoogle() {
+  if (busy || sendingBusy || dispatchCampaignId || !csrfToken || sendingStatus?.oauthConnected !== true) return;
+  invalidateSendingVerification(); sendingBusy = true; renderSendingControls();
+  let disconnected = false;
+  try {
+    const data = await api('/api/admin/google/disconnect', { method: 'POST', body: {} });
+    if (data.connected !== false) throw Error('The server did not confirm disconnection. Check the connection before sending.');
+    setSendingStatus({ ...sendingStatus, oauthConnected: false, oauthEmail: null, configured: false, from: '', principal: null });
+    stagedCampaigns = []; stagedCampaignId = ''; sendingCampaign = null; sendingLoaded = false; renderStagedCampaigns();
+    sendingNote('Google disconnected for this session. Nothing sent.'); disconnected = true;
+  } catch (error) { sendingNote(error.message); }
+  finally { sendingBusy = false; renderSendingControls(); }
+  if (disconnected) await loadSending();
 }
 async function stageCampaign() {
   if (busy || sendingBusy || dispatchCampaignId) return;
@@ -448,6 +489,7 @@ $('exportAllCSV').onclick = () => { if (rows.length) download('CES_Audience_' + 
 for (const id of ['subject', 'preheader', 'body']) $(id).addEventListener('input', () => { markDirty(); preview(); });
 $('saveDraft').onclick = saveDraft; $('newDraft').onclick = newDraft; $('draftList').onchange = () => chooseDraft($('draftList').value); $('prepare').onclick = prepare;
 $('stageCampaign').onclick = stageCampaign; $('checkSending').onclick = checkSending; $('startSending').onclick = startSending; $('pauseSending').onclick = pauseDelivery;
+$('connectGoogle').onclick = connectGoogle; $('disconnectGoogle').onclick = disconnectGoogle;
 $('stagedCampaigns').onchange = async () => {
   if (busy || sendingBusy || dispatchCampaignId) return;
   stagedCampaignId = $('stagedCampaigns').value; sendingCampaign = null; sendingBusy = true; renderSendingControls();

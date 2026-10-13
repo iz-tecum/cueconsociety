@@ -6,6 +6,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { request } from 'node:http';
 import { parseArguments, readPrivateJson, connectionOptions, createAuthorization, receiveAuthorization, completeAuthorization, saveConnection, run } from '../google-connect.mjs';
+import { createGmailAdapter, clearGmailTokenCache } from '../gmail-adapter.mjs';
 
 const SEND = 'https://www.googleapis.com/auth/gmail.send';
 const ALIAS = 'https://www.googleapis.com/auth/gmail.settings.basic';
@@ -24,15 +25,16 @@ async function privateFiles(t, values = config) {
   return { directory, configFile, clientFile };
 }
 
-function googleMock({ principal = options.principal, verified = true, from = options.from, aliasStatus = 'accepted', scope = `openid email ${SEND} ${ALIAS}`, refresh = 'private-refresh-token' } = {}) {
+function googleMock({ principal = options.principal, verified = true, from = options.from, aliasStatus = 'accepted', aliasResponse, scope = `openid email ${SEND} ${ALIAS}`, refresh = 'private-refresh-token' } = {}) {
   const calls = [];
   const fetchImpl = async (url, init) => {
     calls.push({ url, init });
     assert.equal(init.redirect, 'error');
     assert.ok(init.signal instanceof AbortSignal);
     const body = url === 'https://oauth2.googleapis.com/token' ? { access_token: 'private-access-token', refresh_token: refresh, token_type: 'Bearer', scope }
+      : url.startsWith('https://oauth2.googleapis.com/tokeninfo?') ? { aud: client.installed.client_id, scope }
       : url === 'https://openidconnect.googleapis.com/v1/userinfo' ? { email: principal, email_verified: verified, sub: 'google-subject-123' }
-        : url === 'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs' ? { sendAs: [{ sendAsEmail: from, verificationStatus: aliasStatus }] }
+        : url === 'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs' ? aliasResponse === undefined ? { sendAs: [{ sendAsEmail: from, verificationStatus: aliasStatus }] } : aliasResponse
           : assert.fail(`Unexpected network endpoint: ${url}`);
     return new Response(JSON.stringify(body));
   };
@@ -41,6 +43,19 @@ function googleMock({ principal = options.principal, verified = true, from = opt
 
 test('CLI rejects missing, unknown and repeated arguments', () => {
   for (const args of [[], ['--config', '/x'], ['--config', '/x', '--config', '/y'], ['--config', '/x', '--client', '/z', '--send', 'true']]) assert.throws(() => parseArguments(args));
+});
+
+test('pending-alias preparation is explicit and does not widen requested scopes', () => {
+  const args = ['--config', '/private/config.json', '--client', '/private/client.json'];
+  assert.equal(parseArguments([...args, '--allow-pending-alias', 'true'])['--allow-pending-alias'], 'true');
+  assert.equal(parseArguments([...args, '--allow-pending-alias', 'false'])['--allow-pending-alias'], 'false');
+  for (const value of ['yes', '1', 'TRUE', '']) assert.throws(() => parseArguments([...args, '--allow-pending-alias', value]));
+  const values = { ...config, GMAIL_FROM: 'econboard@example.edu', allowPendingAlias: true };
+  const strict = connectionOptions(values, client), pending = connectionOptions(values, client, { allowPendingAlias: true });
+  assert.equal(strict.allowPendingAlias, false);
+  assert.equal(pending.allowPendingAlias, true);
+  assert.equal(connectionOptions(values, client, { allowPendingAlias: 'true' }).allowPendingAlias, false);
+  assert.deepEqual(pending.scopes, strict.scopes);
 });
 
 test('Desktop client, principal and fixed Google endpoints are validated', () => {
@@ -124,6 +139,87 @@ test('alias requires settings scope and already accepted exact sender', async ()
   for (const fixture of [{ scope: `openid email ${SEND}` }, { from: aliasOptions.from, aliasStatus: 'pending' }, { from: 'different@example.edu' }]) await assert.rejects(completeAuthorization(aliasOptions, authorization, googleMock(fixture)));
 });
 
+test('opt-in accepts only a missing or pending alias after successful Google identity and alias reads', async () => {
+  const aliasOptions = connectionOptions({ ...config, GMAIL_FROM: 'econboard@example.edu' }, client, { allowPendingAlias: true });
+  for (const fixture of [
+    { from: aliasOptions.from, aliasStatus: 'pending' },
+    { aliasResponse: { sendAs: [] } },
+    { aliasResponse: { sendAs: [{ sendAsEmail: config.GMAIL_PRINCIPAL }] } }
+  ]) {
+    const mock = googleMock(fixture), result = await completeAuthorization(aliasOptions, authorization, mock);
+    assert.equal(result.aliasVerified, false); assert.equal(result.connectionPending, 'sender_verification');
+    assert.equal(result.GMAIL_SEND_ENABLED, 'false');
+    assert.deepEqual(mock.calls.map(call => [call.url, call.init.method]), [
+      ['https://oauth2.googleapis.com/token', 'POST'], ['https://openidconnect.googleapis.com/v1/userinfo', 'GET'],
+      ['https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', 'GET']
+    ]);
+  }
+  const accepted = await completeAuthorization(aliasOptions, authorization, googleMock({ from: aliasOptions.from }));
+  assert.equal(accepted.aliasVerified, true); assert.equal(accepted.connectionPending, null);
+  const canonicalScope = `openid https://www.googleapis.com/auth/userinfo.email ${SEND} ${ALIAS}`;
+  assert.equal((await completeAuthorization(aliasOptions, authorization, googleMock({ from: aliasOptions.from, scope: canonicalScope }))).aliasVerified, true);
+});
+
+test('opt-in never saves on invalid identity, offline tokens or any missing required scope', async t => {
+  for (const fixture of [
+    { principal: 'other@example.edu' }, { verified: false }, { refresh: '' },
+    { scope: `openid email ${ALIAS}` }, { scope: `openid email ${SEND}` },
+    { scope: `email ${SEND} ${ALIAS}` }, { scope: `openid ${SEND} ${ALIAS}` }
+  ]) {
+    const files = await privateFiles(t, { ...config, GMAIL_FROM: 'econboard@example.edu' });
+    const before = await readFile(files.configFile);
+    const mock = googleMock({ from: 'econboard@example.edu', aliasStatus: 'pending', ...fixture });
+    await assert.rejects(run(['--config', files.configFile, '--client', files.clientFile, '--allow-pending-alias', 'true'], { ...mock, receiveAuthorization: async () => authorization }));
+    assert.deepEqual(await readFile(files.configFile), before);
+    assert.ok(mock.calls.every(call => !call.url.endsWith('/send') && !call.url.endsWith('/verify')));
+  }
+});
+
+test('opt-in never treats API errors or malformed alias responses as pending verification', async t => {
+  const variants = [
+    { status: 403 }, { networkError: true }, { aliasResponse: null }, { aliasResponse: {} },
+    { aliasResponse: { sendAs: [null] } },
+    { aliasResponse: { sendAs: [{ sendAsEmail: 'econboard@example.edu', verificationStatus: 'unknown' }] } }
+  ];
+  for (const variant of variants) {
+    const files = await privateFiles(t, { ...config, GMAIL_FROM: 'econboard@example.edu' });
+    const before = await readFile(files.configFile), mock = googleMock(variant);
+    const fetchImpl = async (url, init) => {
+      if (url.endsWith('/settings/sendAs') && variant.status) return new Response('private-error-detail', { status: variant.status });
+      if (url.endsWith('/settings/sendAs') && variant.networkError) throw new Error('private-error-detail');
+      return mock.fetchImpl(url, init);
+    };
+    await assert.rejects(run(['--config', files.configFile, '--client', files.clientFile, '--allow-pending-alias', 'true'], { fetchImpl, receiveAuthorization: async () => authorization }), error => !error.message.includes('private-error-detail'));
+    assert.deepEqual(await readFile(files.configFile), before);
+  }
+});
+
+test('strict default and explicit false leave pending-alias credentials unsaved', async t => {
+  for (const flags of [[], ['--allow-pending-alias', 'false']]) {
+    const files = await privateFiles(t, { ...config, GMAIL_FROM: 'econboard@example.edu' });
+    const before = await readFile(files.configFile), mock = googleMock({ from: 'econboard@example.edu', aliasStatus: 'pending' });
+    await assert.rejects(run(['--config', files.configFile, '--client', files.clientFile, ...flags], { ...mock, receiveAuthorization: async () => authorization }), /not an accepted Gmail alias/);
+    assert.deepEqual(await readFile(files.configFile), before);
+  }
+});
+
+test('prepared credentials stay private and disabled while the unchanged runtime blocks the pending alias', async t => {
+  clearGmailTokenCache();
+  const files = await privateFiles(t, { ...config, GMAIL_FROM: 'econboard@example.edu', GMAIL_UNSUBSCRIBE_ORIGIN: 'https://admin.example.edu' });
+  const mock = googleMock({ from: 'econboard@example.edu', aliasStatus: 'pending' });
+  const result = await run(['--config', files.configFile, '--client', files.clientFile, '--allow-pending-alias', 'true'], { ...mock, receiveAuthorization: async () => authorization });
+  assert.deepEqual(result, { connected: false, oauthConnected: true, principal: config.GMAIL_PRINCIPAL, from: 'econboard@example.edu', sendingEnabled: false, aliasVerified: false, connectionPending: 'sender_verification' });
+  assert.doesNotMatch(JSON.stringify(result), /private-access-token|private-refresh-token|test-client-secret/);
+  const saved = JSON.parse(await readFile(files.configFile, 'utf8'));
+  assert.equal(saved.GMAIL_SEND_ENABLED, 'false'); assert.equal(saved.GMAIL_REFRESH_TOKEN, 'private-refresh-token');
+  assert.equal(saved.ADMIN_EMAIL, config.ADMIN_EMAIL); assert.equal(saved.aliasVerified, undefined); assert.equal(saved.connectionPending, undefined);
+  assert.equal((await stat(files.configFile)).mode & 0o777, 0o600);
+  const runtime = createGmailAdapter(saved, { fetchImpl: mock.fetchImpl });
+  await assert.rejects(runtime.verify(), error => error.code === 'GMAIL_ALIAS_NOT_VERIFIED');
+  await assert.rejects(runtime.send('never-send', {}), error => error.code === 'SENDING_DISABLED');
+  assert.ok(mock.calls.every(call => !call.url.endsWith('/send') && !call.url.endsWith('/verify')));
+});
+
 test('private files reject broad permissions, broad parent permissions and symlinks', async t => {
   const files = await privateFiles(t);
   assert.equal((await readPrivateJson(files.configFile)).value.ADMIN_EMAIL, config.ADMIN_EMAIL);
@@ -165,6 +261,6 @@ test('save refuses to overwrite edits made while OAuth was pending', async t => 
 test('end-to-end mocked CLI connects without returning tokens or sending', async t => {
   const files = await privateFiles(t), mock = googleMock();
   const result = await run(['--config', files.configFile, '--client', files.clientFile], { ...mock, receiveAuthorization: async () => authorization });
-  assert.deepEqual(result, { connected: true, principal: config.GMAIL_PRINCIPAL, from: config.GMAIL_FROM, sendingEnabled: false });
+  assert.deepEqual(result, { connected: true, oauthConnected: true, principal: config.GMAIL_PRINCIPAL, from: config.GMAIL_FROM, sendingEnabled: false, aliasVerified: true, connectionPending: null });
   assert.doesNotMatch(JSON.stringify(result), /private-access-token|private-refresh-token|test-client-secret/);
 });

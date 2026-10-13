@@ -35,7 +35,7 @@ export function gmailConfiguration(env) {
 }
 
 export async function gmailConfigurationFingerprint(env) {
-  const names = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_PRINCIPAL', 'GMAIL_FROM', 'GMAIL_UNSUBSCRIBE_ORIGIN', 'GMAIL_UNSUBSCRIBE_SECRET'];
+  const names = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_PRINCIPAL', 'GMAIL_FROM', 'GMAIL_UNSUBSCRIBE_ORIGIN', 'GMAIL_UNSUBSCRIBE_SECRET', 'GMAIL_CONNECTION_ID'];
   const bytes = new TextEncoder().encode(JSON.stringify(['ces-gmail-configuration-v1', ...names.map(name => env[name] ?? null)]));
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(value => value.toString(16).padStart(2, '0')).join('');
 }
@@ -81,6 +81,7 @@ export function createGmailAdapter(env, { fetchImpl = globalThis.fetch, clock = 
     const scopes = new Set(String(info?.scope || '').split(/\s+/));
     if (!infoResponse.ok || info?.aud !== env.GMAIL_CLIENT_ID || !scopes.has(SEND_SCOPE)) throw new GmailError('GOOGLE_SEND_PERMISSION_REQUIRED');
     if (!identityResponse.ok || identity?.email_verified !== true || address(identity.email) !== config.principal) throw new GmailError('GOOGLE_ACCOUNT_MISMATCH');
+    if (env.GMAIL_SESSION_OAUTH === 'true' && (identity.sub !== env.GMAIL_CONNECTION_ID || (info.sub && info.sub !== env.GMAIL_CONNECTION_ID))) throw new GmailError('GOOGLE_ACCOUNT_MISMATCH');
     if (config.from !== config.principal) {
       if (!scopes.has(ALIAS_SCOPE)) throw new GmailError('GMAIL_ALIAS_PERMISSION_REQUIRED');
       let aliasesResponse;

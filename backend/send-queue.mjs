@@ -42,17 +42,30 @@ async function countJobs(env, id) {
   return { ...Object.fromEntries(STATES.map(status => [status, 0])), ...Object.fromEntries(rows.results.map(row => [row.status, row.count])) };
 }
 async function detail(env, id) {
+  await assertCampaignOwner(env, id);
   const row = await env.DB.prepare('SELECT * FROM send_campaigns WHERE id=?').bind(id).first();
   if (!row) reject('Campaign not found.', 404);
   const counts = await countJobs(env, id);
   return { campaign: publicCampaign(row, Object.values(counts).reduce((sum, n) => sum + n, 0)), counts };
 }
+async function assertCampaignOwner(env, id) {
+  if (env.GMAIL_SESSION_OAUTH !== 'true') return;
+  const owner = env.GMAIL_CONNECTION_ID && await env.DB.prepare('SELECT 1 AS owned FROM google_campaign_owners WHERE campaign_id=? AND google_sub=?').bind(id, env.GMAIL_CONNECTION_ID).first();
+  if (!owner) reject('Campaign not found for the connected Google account.', 404);
+}
+async function verificationContext(env) {
+  const scope = env.GMAIL_SESSION_OAUTH === 'true' ? env.GMAIL_CONNECTION_ID ? await digest(env.GMAIL_CONNECTION_ID) : 'disconnected' : 'global';
+  const row = scope === 'global' ? 'gmail' : `gmail-owner:${scope}`;
+  if (row !== 'gmail') await env.DB.prepare('INSERT OR IGNORE INTO send_control(id) VALUES(?)').bind(row).run();
+  return { row, proof: `gmail-check:${scope}:`, attempt: `gmail-check-attempt:${scope}:` };
+}
 async function verifyConnection(env, adapter, now) {
   const fingerprint = await gmailConfigurationFingerprint(env);
-  const attempt = `gmail-check-attempt:${crypto.randomUUID()}`;
+  const scope = await verificationContext(env);
+  const attempt = `${scope.attempt}${crypto.randomUUID()}`;
   await env.DB.batch([
-    env.DB.prepare("UPDATE send_control SET verified_principal=NULL,verified_from=NULL,verified_at=NULL WHERE id='gmail'"),
-    env.DB.prepare("DELETE FROM send_control WHERE id LIKE 'gmail-check:%' OR id LIKE 'gmail-check-attempt:%'"),
+    env.DB.prepare('UPDATE send_control SET verified_principal=NULL,verified_from=NULL,verified_at=NULL WHERE id=?').bind(scope.row),
+    env.DB.prepare('DELETE FROM send_control WHERE id LIKE ? OR id LIKE ?').bind(`${scope.proof}%`, `${scope.attempt}%`),
     env.DB.prepare('INSERT INTO send_control(id) VALUES(?)').bind(attempt)
   ]);
   try {
@@ -60,10 +73,10 @@ async function verifyConnection(env, adapter, now) {
     const config = gmailConfiguration(env);
     if (!config.configured || identity.principal !== config.principal || identity.from !== config.from || fingerprint !== await gmailConfigurationFingerprint(env)) throw new GmailError('GOOGLE_CONFIGURATION_CHANGED');
     const saved = await env.DB.batch([
-      env.DB.prepare("UPDATE send_control SET verified_principal=?,verified_from=?,verified_at=? WHERE id='gmail' AND EXISTS(SELECT 1 FROM send_control WHERE id=?)")
-        .bind(identity.principal, identity.from, iso(now), attempt),
+      env.DB.prepare('UPDATE send_control SET verified_principal=?,verified_from=?,verified_at=? WHERE id=? AND EXISTS(SELECT 1 FROM send_control WHERE id=?)')
+        .bind(identity.principal, identity.from, iso(now), scope.row, attempt),
       env.DB.prepare('INSERT INTO send_control(id,verified_principal,verified_from,verified_at) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM send_control WHERE id=?) RETURNING id')
-        .bind(`gmail-check:${fingerprint}`, identity.principal, identity.from, iso(now), attempt),
+        .bind(`${scope.proof}${fingerprint}`, identity.principal, identity.from, iso(now), attempt),
       env.DB.prepare('DELETE FROM send_control WHERE id=?').bind(attempt)
     ]);
     if (!saved[1].results.length) throw new GmailError('GOOGLE_CHECK_SUPERSEDED');
@@ -78,9 +91,10 @@ export async function sendingStatus(env, now = Date.now()) {
   await ensureControl(env);
   const config = gmailConfiguration(env);
   const fingerprint = await gmailConfigurationFingerprint(env);
+  const scope = await verificationContext(env);
   const saved = await env.DB.prepare(`SELECT c.verified_principal,c.verified_from,c.verified_at,
     EXISTS(SELECT 1 FROM send_control p WHERE p.id=? AND p.verified_at=c.verified_at AND p.verified_principal=c.verified_principal AND p.verified_from=c.verified_from) AS configuration_matches
-    FROM send_control c WHERE c.id='gmail'`).bind(`gmail-check:${fingerprint}`).first();
+    FROM send_control c WHERE c.id=?`).bind(`${scope.proof}${fingerprint}`, scope.row).first();
   const checkedAt = Date.parse(saved?.verified_at);
   const matches = Boolean(config.configured && saved?.configuration_matches && saved?.verified_principal === config.principal && saved?.verified_from === config.from && checkedAt <= now && checkedAt > now - VERIFICATION_AGE);
   const lastCheck = saved?.verified_at ? { at: saved.verified_at, principal: saved.verified_principal, from: saved.verified_from } : null;
@@ -94,6 +108,7 @@ export async function sendingStatus(env, now = Date.now()) {
 
 export async function stageCampaign(env, draftId, now = Date.now()) {
   await ensureControl(env);
+  if (env.GMAIL_SESSION_OAUTH === 'true' && !env.GMAIL_CONNECTION_ID) reject('Connect your Columbia Google account before preparing a campaign.', 409);
   if (typeof draftId !== 'string' || !ID.test(draftId)) reject('Choose a saved draft.');
   const draft = await env.DB.prepare('SELECT * FROM drafts WHERE id=?').bind(draftId).first();
   if (!draft || !draft.subject.trim() || !draft.body.trim()) reject('Save a draft with a subject and message first.');
@@ -101,7 +116,8 @@ export async function stageCampaign(env, draftId, now = Date.now()) {
     .bind(draft.recipient_ids_json).all();
   if (!eligible.results.length) reject('Select current subscribers before staging.');
   const from = gmailConfiguration(env).from;
-  const snapshot = { subject: draft.subject, preheader: draft.preheader, body: draft.body, draftId, draftUpdatedAt: draft.updated_at, from, recipientIds: eligible.results.map(row => row.id) };
+  const snapshot = { subject: draft.subject, preheader: draft.preheader, body: draft.body, draftId, draftUpdatedAt: draft.updated_at, from,
+    ...(env.GMAIL_SESSION_OAUTH === 'true' ? { googleSubject: env.GMAIL_CONNECTION_ID } : {}), recipientIds: eligible.results.map(row => row.id) };
   const key = await digest(JSON.stringify(snapshot));
   let existing = await env.DB.prepare('SELECT * FROM send_campaigns WHERE snapshot_key=?').bind(key).first();
   if (existing) return { ...await detail(env, existing.id), reused: true };
@@ -115,7 +131,8 @@ export async function stageCampaign(env, draftId, now = Date.now()) {
       WHERE c.snapshot_key=? AND c.status='staged' AND p.status='subscribed'
       ON CONFLICT(campaign_id,contact_id) DO NOTHING`)
       .bind('cueconsociety.com', at, JSON.stringify(snapshot.recipientIds), key),
-    env.DB.prepare('INSERT INTO audit(id,action,detail_json,created_at) VALUES(?,?,?,?)').bind(crypto.randomUUID(), 'campaign-staged', JSON.stringify({ snapshotKey: key, recipients: snapshot.recipientIds.length }), at)
+    env.DB.prepare('INSERT INTO audit(id,action,detail_json,created_at) VALUES(?,?,?,?)').bind(crypto.randomUUID(), 'campaign-staged', JSON.stringify({ snapshotKey: key, recipients: snapshot.recipientIds.length }), at),
+    ...(env.GMAIL_SESSION_OAUTH === 'true' ? [env.DB.prepare('INSERT INTO google_campaign_owners(campaign_id,google_sub) SELECT id,? FROM send_campaigns WHERE snapshot_key=? ON CONFLICT(campaign_id) DO NOTHING').bind(env.GMAIL_CONNECTION_ID, key)] : [])
   ]);
   existing = await env.DB.prepare('SELECT id FROM send_campaigns WHERE snapshot_key=?').bind(key).first();
   return { ...await detail(env, existing.id), reused: existing.id !== id };
@@ -170,6 +187,7 @@ async function finalizeCampaign(env, id, now) {
     .bind(uncertain ? 'paused' : 'completed', iso(now), id).run();
 }
 async function startCampaign(env, id, adapter, now) {
+  await assertCampaignOwner(env, id);
   const config = gmailConfiguration(env);
   if (!config.enabled || !config.configured) reject(config.reason, 409);
   const row = await env.DB.prepare('SELECT * FROM send_campaigns WHERE id=?').bind(id).first();
@@ -192,6 +210,7 @@ export async function dispatchOne(env, campaignId, { adapter = createGmailAdapte
   const config = gmailConfiguration(env);
   if (!config.enabled || !config.configured) reject(config.reason, 409);
   if (!ID.test(campaignId || '')) reject('Choose a campaign.');
+  await assertCampaignOwner(env, campaignId);
   let campaign = await env.DB.prepare('SELECT * FROM send_campaigns WHERE id=?').bind(campaignId).first();
   if (!campaign || campaign.status !== 'running') reject('Start the campaign explicitly before dispatching.', 409);
   if (campaign.from_email !== config.from) reject('The configured sender changed. Pause and restage the campaign.', 409);
@@ -232,8 +251,11 @@ export async function dispatchOne(env, campaignId, { adapter = createGmailAdapte
         WHERE EXISTS(SELECT 1 FROM send_control WHERE id='gmail' AND lease_id=? AND lease_until>?)
         AND EXISTS(SELECT 1 FROM send_jobs j JOIN send_campaigns c ON c.id=j.campaign_id JOIN contacts p ON p.id=j.contact_id
           WHERE j.id=? AND j.status='processing' AND j.lease_id=? AND j.lease_until>? AND c.status='running' AND c.from_email=? AND p.status='subscribed' AND p.email=j.recipient_email)
-        AND (SELECT COUNT(*) FROM send_budget WHERE attempted_at>?) < ? RETURNING id`)
-        .bind(attemptId, job.id, attemptAt, lease, attemptAt, job.id, lease, attemptAt, config.from, attemptAt - DAY, config.limits.rolling24Hours),
+        AND (SELECT COUNT(*) FROM send_budget WHERE attempted_at>?) < ?
+        AND (?=0 OR EXISTS(SELECT 1 FROM google_session_connections l JOIN sessions s ON s.token_hash=l.session_hash
+          WHERE l.session_hash=? AND l.google_sub=? AND s.expires_at>?)) RETURNING id`)
+        .bind(attemptId, job.id, attemptAt, lease, attemptAt, job.id, lease, attemptAt, config.from, attemptAt - DAY, config.limits.rolling24Hours,
+          env.GMAIL_SESSION_OAUTH === 'true' ? 1 : 0, env.GMAIL_SESSION_HASH || '', env.GMAIL_CONNECTION_ID || '', attemptAt),
       env.DB.prepare('UPDATE send_jobs SET attempts=attempts+1 WHERE id=? AND lease_id=? AND EXISTS(SELECT 1 FROM send_budget WHERE id=?)').bind(job.id, lease, attemptId),
       env.DB.prepare('DELETE FROM send_budget WHERE attempted_at<?').bind(attemptAt - 2 * DAY)
     ]);
@@ -273,18 +295,20 @@ export async function dispatchOne(env, campaignId, { adapter = createGmailAdapte
   }
 }
 
-export async function handleSending(request, env, { now = Date.now(), readJSON, fetchImpl } = {}) {
+export async function handleSending(request, env, { now = Date.now(), readJSON, fetchImpl, oauthStatus = {} } = {}) {
   await ensureControl(env);
   const path = new URL(request.url).pathname, adapter = createGmailAdapter(env, { fetchImpl, clock: () => now });
-  if (path === '/api/admin/sending/status' && request.method === 'GET') return reply(await sendingStatus(env, now));
+  if (path === '/api/admin/sending/status' && request.method === 'GET') return reply({ ...await sendingStatus(env, now), ...oauthStatus });
   if (path === '/api/admin/sending/check' && request.method === 'POST') {
     await readJSON(request, 4096);
     await verifyConnection(env, adapter, now);
-    return reply(await sendingStatus(env, now));
+    return reply({ ...await sendingStatus(env, now), ...oauthStatus });
   }
   if (path === '/api/admin/sending/campaigns' && request.method === 'POST') return reply(await stageCampaign(env, (await readJSON(request, 4096)).draftId, now));
   if (path === '/api/admin/sending/campaigns' && request.method === 'GET') {
-    const rows = await env.DB.prepare('SELECT c.*,COUNT(j.id) AS recipient_count FROM send_campaigns c LEFT JOIN send_jobs j ON c.id=j.campaign_id GROUP BY c.id ORDER BY c.created_at DESC LIMIT 100').all();
+    const rows = await env.DB.prepare(`SELECT c.*,COUNT(j.id) AS recipient_count FROM send_campaigns c LEFT JOIN send_jobs j ON c.id=j.campaign_id
+      WHERE ?=0 OR EXISTS(SELECT 1 FROM google_campaign_owners o WHERE o.campaign_id=c.id AND o.google_sub=?) GROUP BY c.id ORDER BY c.created_at DESC LIMIT 100`)
+      .bind(env.GMAIL_SESSION_OAUTH === 'true' ? 1 : 0, env.GMAIL_CONNECTION_ID || '').all();
     return reply({ campaigns: rows.results.map(row => publicCampaign(row, row.recipient_count)) });
   }
   if (path === '/api/admin/sending/dispatch' && request.method === 'POST') return reply(await dispatchOne(env, (await readJSON(request, 4096)).campaignId, { adapter, now }));
@@ -294,6 +318,7 @@ export async function handleSending(request, env, { now = Date.now(), readJSON, 
     await readJSON(request, 4096);
     if (match[2] === 'start') return reply(await startCampaign(env, match[1], adapter, now));
     if (match[2] === 'pause') {
+      await assertCampaignOwner(env, match[1]);
       await env.DB.prepare("UPDATE send_campaigns SET status='paused',updated_at=? WHERE id=? AND status='running'").bind(iso(now), match[1]).run();
       return reply(await detail(env, match[1]));
     }
