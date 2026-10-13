@@ -19,6 +19,7 @@
     background:transparent;
   }
 
+
   a{
     color: inherit;
     text-decoration: none;
@@ -86,6 +87,7 @@
     --logo-gap: 18px;
   }
 
+
   .topbar{
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -152,6 +154,7 @@
     transition: opacity 220ms ease;
   }
   .nav a:hover{ opacity: .85; }
+
 
   .drop{
     position: relative;
@@ -285,6 +288,7 @@
     .recruit{ padding: 10px 14px !important; }
   }
 
+
 .nav-toggle{
   display: none;
   margin-left: auto;
@@ -316,6 +320,7 @@
 @media (max-width: 920px){
   .nav-toggle{ display: inline-flex; }
 
+
   .nav{
     position: absolute;
     left: 0;
@@ -339,6 +344,7 @@
     transform: translateY(0);
   }
 
+
   .nav .nav-links{
     width: min(520px, calc(100vw - (2 * var(--padX))));
     margin: 0 auto;
@@ -352,6 +358,7 @@
     align-items: stretch;
     white-space: normal;
   }
+
 
   .nav a,
   .drop > button{
@@ -369,6 +376,7 @@
     margin-left: 0 !important;
   }
 
+
   .topbar.nav-open .nav-toggle span:nth-child(1){
     transform: translateY(8px) rotate(45deg);
   }
@@ -378,6 +386,7 @@
   .topbar.nav-open .nav-toggle span:nth-child(3){
     transform: translateY(-8px) rotate(-45deg);
   }
+
 
   .drop{
     width: 100%;
@@ -434,6 +443,7 @@
 
   .drop::after{ display: none; }
 
+
   .topbar.nav-open .nav,
   .topbar.is-solid.nav-open .nav{
     color: rgba(255,255,255,.92);
@@ -456,13 +466,16 @@
     background-color: rgba(255,255,255,.10);
   }
 
+
 .topbar.nav-open:not(.is-solid) .nav-toggle span{
   background: rgba(255,255,255,.92);
 }
 }
 
+
   .page-clip{ overflow-x: clip; }
   @supports not (overflow-x: clip){ .page-clip{ overflow-x: hidden; } }
+
 
   .hero{
     position: relative;
@@ -549,6 +562,7 @@
   }
   .hero-socials a:hover{ opacity:.88; border-bottom-color: rgba(255,255,255,.40); }
 
+
     body.preload .hero-bg{ opacity: 1 !important; }
     body.preload .hero-inner > div{ opacity: 1; transform: translateY(10px); }
     body.preload .hero-socials{ opacity: 1; transform: translateY(10px); }
@@ -576,6 +590,7 @@
       transform: translateY(0);
     }
 
+
   .section{ padding: 74px var(--padX); background:#fff; }
   .wrap{ max-width: 1800px; margin: 0 auto; }
 
@@ -594,6 +609,7 @@
     font-size: 20px;
     font-weight: 400;
   }
+
 
   .grid-wide{ width: 100%; margin: 46px auto 0; padding: 0; }
   .image-grid{
@@ -660,6 +676,7 @@
     transition: background-color 220ms ease, transform 220ms ease, opacity 220ms ease;
   }
   .cta-btn:hover{ background: rgba(16,24,40,.06); opacity: .95; transform: translateY(0px); }
+
 
   .band{ padding: 0; }
   .band-inner{
@@ -736,6 +753,7 @@
   }
   .band-btn:hover{ background: rgba(255,255,255,.10); opacity: .95; }
 
+
   .sponsors{ padding: 34px var(--padX) 10px; background:#fff; }
   .sponsors h2{
     margin: 0;
@@ -763,6 +781,7 @@
     justify-self:center;
   }
   .sponsor-card img{ width:100%; height:100%; object-fit:contain; display:block; }
+
 
   .footer{ padding: 64px var(--padX); background:#fff; }
   .footer-inner{
@@ -817,12 +836,14 @@
     letter-spacing: .02em;
   }
 
+
   .reveal{
     opacity: 0;
     transform: translateY(18px);
     transition: opacity 700ms var(--hero-ease), transform 700ms var(--hero-ease);
   }
   .reveal.in{ opacity: 1; transform: translateY(0); }
+
 
   @media (max-width: 980px){
     .hero{ min-height: 560px; }
@@ -843,11 +864,9 @@
     .hero-bg{ transition: none !important; }
   }
 </style>
-  <link rel="stylesheet" href="./assets/site.css">
 </head>
 
-<body class="preload home-page">
-<a class="skip-link" href="#main-content">Skip to content</a>
+<body class="preload">
   <header class="topbar" id="topbar">
     <div class="topbar-inner">
       <a class="brand brand-float" href="./index.html" aria-label="Home">
@@ -871,34 +890,27 @@
             <div class="menu" role="menu" aria-label="About menu">
               <a href="./about/index.html" role="menuitem">ABOUT</a>
               <a href="./leadership/index.html" role="menuitem">LEADERSHIP</a>
-            <a href="./faq/index.html" role="menuitem">FAQ</a>
             </div>
           </div>
 
           <a href="./events/index.html">EVENTS</a>
           <a href="./alumni/index.html">ALUMNI</a>
-                    <a href="./contact/index.html">CONTACT</a>
-          <a href="./recruitment/index.html">RECRUITMENT</a>
-        <a class="recruit" href="./newsletter/index.html">JOIN MAILING LIST</a>
+          <a href="./faq/index.html">FAQ</a>
+          <a href="./contact/index.html">CONTACT</a>
+          <a class="recruit" href="./recruitment/index.html">RECRUITMENT</a>
         </div>
       </nav>
     </div>
   </header>
 
-  <main class="page-clip" id="main-content" tabindex="-1">
+  <main class="page-clip">
     <section class="hero" id="hero">
       <div class="hero-bg" id="bgA"></div>
       <div class="hero-bg" id="bgB"></div>
 
       <div class="hero-inner">
         <div>
-          <p class="hero-kicker">Columbia Economics Society · 2026–27</p>
-          <h1>Economics, ideas, and the people behind them.</h1>
-          <p class="hero-description">Meet speakers, explore careers, and build a community across Columbia and Barnard.</p>
-          <div class="hero-actions">
-            <a class="hero-action primary" href="./newsletter/index.html">JOIN THE MAILING LIST</a>
-            <a class="hero-action" href="./leadership/index.html">MEET THE BOARD</a>
-          </div>
+          <h1>We build tomorrow's economic leaders.</h1>
         </div>
       </div>
 
@@ -975,13 +987,14 @@
         <div class="band-bg" style="background-image:url('./horizontals/im3.jpg');"></div>
         <div class="band-content">
           <div class="band-left">
-            <h3>Stay connected with CES</h3>
+            <h3>Subscribe to Our Email Newsletter</h3>
             <p>
-              Event invitations, speakers, workshops, and recruiting updates in one place.
+              Learn about upcoming events, key economic moments, guest speakers, and opportunities
+              across campus—curated for CES.
             </p>
           </div>
-          <a class="band-btn" href="./newsletter/index.html">
-            JOIN THE MAILING LIST
+          <a class="band-btn" href="/newsletter/">
+            JOIN NOW
           </a>
         </div>
       </div>
@@ -997,9 +1010,8 @@
         </div>
 
         <div class="footer-right">
-          <h4>Stay connected</h4>
+          <h4>Follow Us</h4>
           <div class="footer-links">
-        <a class="newsletter-link" href="./newsletter/index.html">Join the mailing list</a>
             <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook" target="_blank" rel="noopener noreferrer">Facebook</a>
             <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram" target="_blank" rel="noopener noreferrer">Instagram</a>
             <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">LinkedIn</a>
@@ -1015,7 +1027,6 @@
   </main>
 
 <script>
-
   const topbar = document.getElementById("topbar");
   const heroEl = document.getElementById("hero");
 
@@ -1027,7 +1038,6 @@
   }
   window.addEventListener("scroll", setNavState, { passive:true });
   window.addEventListener("resize", setNavState);
-
   const slides = ["./horizontals/im1.jpg","./horizontals/im2.jpg","./horizontals/im3.jpg"];
   const bgA = document.getElementById("bgA");
   const bgB = document.getElementById("bgB");
@@ -1036,7 +1046,6 @@
   function setBg(el, src){ el.style.backgroundImage = `url('${src}')`; }
 
   function startSlideshow(){
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const intervalMs = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--hero-interval-ms")) || 5200;
     if(heroTimer) clearInterval(heroTimer);
     heroTimer = setInterval(() => {
@@ -1094,20 +1103,17 @@
 
     setTimeout(() => { if(document.body.classList.contains("preload")) reveal(); }, 900);
   }
-
   const revealEls = document.querySelectorAll(".reveal");
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
   }, { threshold: 0.03 });
   revealEls.forEach(el => io.observe(el));
-
   document.getElementById("year").textContent = new Date().getFullYear();
 
   document.addEventListener("DOMContentLoaded", () => {
     setNavState();
     bootHero();
   });
-
   (function () {
     const toggle = document.querySelector('.nav-toggle');
     const nav = document.getElementById('mobileNav');

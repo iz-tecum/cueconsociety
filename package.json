@@ -1,9 +1,15 @@
 {
   "name": "cueconsociety",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@vercel/blob": "2.8.1"
+  },
+  "scripts": {
+    "test": "node --test tests/newsletter*.test.js",
+    "newsletter": "node scripts/newsletter.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
-
-
-
-

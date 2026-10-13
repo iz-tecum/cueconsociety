@@ -20,6 +20,7 @@
     background:transparent;
   }
 
+
   a{
     color: inherit;
     text-decoration: none;
@@ -27,11 +28,13 @@
   }
   a:hover{ text-decoration:none; opacity: .85; }
 
+
   a:focus-visible,
   button:focus-visible{
     outline: 3px solid rgba(16,24,40,.35);
     outline-offset: 3px;
   }
+
 
   .hero-socials a,
   .footer-left a,
@@ -42,6 +45,7 @@
 
   :root{
 
+
     --nav-solid-bg: rgba(219, 242, 255, 0.96);
     --nav-solid-border: rgba(16, 24, 40, 0.12);
     --nav-solid-text: rgba(0, 0, 0, 0.9);
@@ -50,6 +54,7 @@
     --nav-hero-border: rgba(255,255,255,.12);
     --nav-transition-ms: 420ms;
     --nav-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
 
     --hero-h: 75vh;
     --hero-min-h: 20vh;
@@ -61,23 +66,29 @@
     --hero-dim-top: 0.00;
     --hero-dim-bottom: 0.00;
 
+
     --hero-ease: cubic-bezier(0.22, 0, 0.36, 1);
     --hero-fade-ms: 1200ms;
     --hero-hover-ms: 1000ms;
     --hero-interval-ms: 5200ms;
 
+
     --padX: 28px;
+
 
     --grid-scale: 1.065;
     --grid-hover-ms: 420ms;
 
+
     --card-bg: rgb(245,245,245);
     --card-radius: 0px;
+
 
     --logo-w: 54px;
     --logo-h: 58px;
     --logo-gap: 18px;
   }
+
 
   .topbar{
     position: fixed;
@@ -127,6 +138,7 @@
     color: var(--nav-hero-text);
   }
 
+
   .nav .nav-links{
     display:flex;
     align-items:center;
@@ -145,6 +157,7 @@
     transition: opacity 220ms ease;
   }
   .nav a:hover{ opacity: .85; }
+
 
   .drop{
     position: relative;
@@ -280,6 +293,7 @@
     .recruit{ padding: 10px 14px !important; }
   }
 
+
 .nav-toggle{
   display: none;
   margin-left: auto;
@@ -311,6 +325,7 @@
 @media (max-width: 920px){
   .nav-toggle{ display: inline-flex; }
 
+
   .nav{
     position: absolute;
     left: 0;
@@ -334,6 +349,7 @@
     transform: translateY(0);
   }
 
+
   .nav .nav-links{
     width: min(520px, calc(100vw - (2 * var(--padX))));
     margin: 0 auto;
@@ -347,6 +363,7 @@
     align-items: stretch;
     white-space: normal;
   }
+
 
   .nav a,
   .drop > button{
@@ -364,6 +381,7 @@
     margin-left: 0 !important;
   }
 
+
   .topbar.nav-open .nav-toggle span:nth-child(1){
     transform: translateY(8px) rotate(45deg);
   }
@@ -373,6 +391,7 @@
   .topbar.nav-open .nav-toggle span:nth-child(3){
     transform: translateY(-8px) rotate(-45deg);
   }
+
 
   .drop{
     width: 100%;
@@ -429,6 +448,7 @@
 
   .drop::after{ display: none; }
 
+
   .topbar.nav-open .nav,
   .topbar.is-solid.nav-open .nav{
     color: rgba(255,255,255,.92);
@@ -451,10 +471,13 @@
     background-color: rgba(255,255,255,.10);
   }
 
+
 .topbar.nav-open:not(.is-solid) .nav-toggle span{
   background: rgba(255,255,255,.92);
 }
 }
+
+
 
   .hero{
     position: relative;
@@ -549,10 +572,12 @@
     border-bottom-color: rgba(255,255,255,.40);
   }
 
+
   .page-clip{ overflow-x: clip; }
   @supports not (overflow-x: clip){
     .page-clip{ overflow-x: hidden; }
   }
+
 
   .section{
     padding: 74px var(--padX);
@@ -562,6 +587,7 @@
     max-width: 1800px;
     margin: 0 auto;
   }
+
 
   .alumni-layout{
     display:flex;
@@ -611,6 +637,7 @@
   color: rgba(16,24,40,.92);
 }
 
+
   .alumni-stack{
     width: min(1200px, 100%);
     margin: 0 auto;
@@ -635,6 +662,7 @@
     font-weight: 400;
     white-space: pre-line;
   }
+
 
   .alumni-grid{
     margin-top: 46px;
@@ -691,6 +719,7 @@
     opacity: .88;
     border-color: rgba(16,24,40,.55);
   }
+
 
   .footer{
     padding: 64px var(--padX);
@@ -751,6 +780,7 @@
     letter-spacing: .02em;
   }
 
+
   body.preload .hero-bg{ opacity: 1 !important; }
   body.preload .hero-inner > div{ opacity: 1; transform: translateY(10px); }
   body.preload .hero-socials{ opacity: 1; transform: translateY(10px); }
@@ -778,6 +808,7 @@
     transform: translateY(0);
   }
 
+
   @media (max-width: 1180px){
     .alumni-side{ width: 320px; flex-basis: 320px; margin-left: 40px; }
     .side-photo{ height: 640px; }
@@ -804,22 +835,22 @@
     .footer-links{ align-items:flex-start; }
   }
 
+
   @media (prefers-reduced-motion: reduce){
     *{ transition: none !important; scroll-behavior: auto !important; }
     .hero-bg{ transition: none !important; }
   }
 </style>
-  <link rel="stylesheet" href="../assets/site.css">
 </head>
 
 <body class="preload">
-<a class="skip-link" href="#main-content">Skip to content</a>
 
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <a class="brand brand-float" href="../index.html" aria-label="Home">
       <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
     </a>
+
 
     <button class="nav-toggle"
             type="button"
@@ -838,21 +869,20 @@
           <div class="menu" role="menu" aria-label="About menu">
             <a href="../about/index.html" role="menuitem">ABOUT</a>
             <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
-            <a href="../faq/index.html" role="menuitem">FAQ</a>
           </div>
         </div>
 
         <a href="../events/index.html">EVENTS</a>
-        <a href="../alumni/index.html" aria-current="page">ALUMNI</a>
-                <a href="../contact/index.html">CONTACT</a>
-        <a href="../recruitment/index.html">RECRUITMENT</a>
-        <a class="recruit" href="../newsletter/index.html">JOIN MAILING LIST</a>
+        <a href="../alumni/index.html">ALUMNI</a>
+        <a href="../faq/index.html">FAQ</a>
+        <a href="../contact/index.html">CONTACT</a>
+        <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
       </div>
     </nav>
   </div>
 </header>
 
-  <main class="page-clip" id="main-content" tabindex="-1">
+  <main class="page-clip">
 
     <section class="hero" id="hero">
       <div class="hero-bg a" id="bgA"></div>
@@ -875,9 +905,11 @@
     </section>
   </main>
 
+
   <section class="section reveal" id="alumni">
     <div class="wrap">
       <div class="alumni-layout">
+
 
         <div class="alumni-main">
           <h2 class="block-title">Our Alumni</h2>
@@ -895,11 +927,13 @@
                 </ul>
               </div>
 
+
               <div class="class-card" aria-hidden="true" style="opacity:0; pointer-events:none;"></div>
               <div class="class-card" aria-hidden="true" style="opacity:0; pointer-events:none;"></div>
             </div>
           </div>
         </div>
+
 
         <aside class="alumni-side" aria-label="Campus photo">
           <div class="side-photo" style="--img:url('../verticals/im1.jpg');"></div>
@@ -908,6 +942,7 @@
       </div>
     </div>
   </section>
+
 
   <footer class="footer reveal" id="contact">
     <div class="footer-inner">
@@ -919,9 +954,8 @@
       </div>
 
       <div class="footer-right">
-        <h4>Stay connected</h4>
+        <h4>Follow Us</h4>
         <div class="footer-links">
-        <a class="newsletter-link" href="../newsletter/index.html">Join the mailing list</a>
           <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
           <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
           <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
@@ -936,7 +970,6 @@
   </footer>
 
 <script>
-
   const topbar = document.getElementById("topbar");
   const heroEl = document.getElementById("hero");
   function setNavState(){
@@ -947,7 +980,6 @@
   window.addEventListener("scroll", setNavState, { passive:true });
   window.addEventListener("resize", setNavState);
   setNavState();
-
   const slides = [
     "../horizontals/im7.jpg",
     "../horizontals/im4.jpg",
@@ -962,7 +994,6 @@
   let timer = null;
 
   function startSlideshow(){
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if(timer) return;
 
     const intervalMsRaw = getComputedStyle(document.documentElement)
@@ -1015,7 +1046,6 @@
       }
     });
   }
-
   document.addEventListener("DOMContentLoaded", async () => {
     setNavState();
 
@@ -1023,29 +1053,22 @@
       revealHeroNow();
       return;
     }
-
     bgA.style.backgroundImage = `url('${slides[0]}')`;
     bgA.style.opacity = "1";
     bgB.style.opacity = "0";
-
     for (let i = 1; i < slides.length; i++){
       const im = new Image();
       im.src = slides[i];
     }
-
     await primeFirstHeroImage();
-
     revealHeroNow();
-
     startSlideshow();
   });
-
   const revealEls = document.querySelectorAll(".reveal");
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
   }, { threshold: 0.03 });
   revealEls.forEach(el => io.observe(el));
-
   document.getElementById("year").textContent = new Date().getFullYear();
 </script>
 

@@ -19,6 +19,7 @@
     background: transparent;
   }
 
+
   a{
     color: inherit;
     text-decoration: none;
@@ -26,11 +27,13 @@
   }
   a:hover{ text-decoration:none; opacity: .85; }
 
+
   a:focus-visible,
   button:focus-visible{
     outline: 3px solid rgba(16,24,40,.35);
     outline-offset: 3px;
   }
+
 
   .hero-socials a,
   .footer-left a,
@@ -50,6 +53,7 @@
     --nav-transition-ms: 420ms;
     --nav-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
+
     --hero-h: 75vh;
     --hero-min-h: 20vh;
     --hero-blur: 7px;
@@ -60,10 +64,12 @@
     --hero-dim-top: 0.00;
     --hero-dim-bottom: 0.00;
 
+
     --hero-ease: cubic-bezier(0.22, 0, 0.36, 1);
     --hero-fade-ms: 1200ms;
     --hero-hover-ms: 1000ms;
     --hero-interval-ms: 5200ms;
+
 
     --container: 1180px;
     --padX: 28px;
@@ -71,19 +77,24 @@
     --muted: rgba(16,24,40,.72);
     --muted2: rgba(16,24,40,.60);
 
+
     --grid-scale: 1.065;
     --grid-hover-ms: 420ms;
+
 
     --card-bg: rgb(245,245,245);
     --card-radius: 0px;
     --card-gap: 40px;
 
+
     --modal-blur: 10px;
+
 
     --logo-w: 54px;
     --logo-h: 58px;
     --logo-gap: 18px;
   }
+
 
   .topbar{
     position: fixed;
@@ -133,6 +144,7 @@
     color: var(--nav-hero-text);
   }
 
+
   .nav .nav-links{
     display:flex;
     align-items:center;
@@ -151,6 +163,7 @@
     transition: opacity 220ms ease;
   }
   .nav a:hover{ opacity: .85; }
+
 
   .drop{
     position: relative;
@@ -286,6 +299,7 @@
     .recruit{ padding: 10px 14px !important; }
   }
 
+
 .nav-toggle{
   display: none;
   margin-left: auto;
@@ -317,6 +331,7 @@
 @media (max-width: 920px){
   .nav-toggle{ display: inline-flex; }
 
+
   .nav{
     position: absolute;
     left: 0;
@@ -340,6 +355,7 @@
     transform: translateY(0);
   }
 
+
   .nav .nav-links{
     width: min(520px, calc(100vw - (2 * var(--padX))));
     margin: 0 auto;
@@ -353,6 +369,7 @@
     align-items: stretch;
     white-space: normal;
   }
+
 
   .nav a,
   .drop > button{
@@ -370,6 +387,7 @@
     margin-left: 0 !important;
   }
 
+
   .topbar.nav-open .nav-toggle span:nth-child(1){
     transform: translateY(8px) rotate(45deg);
   }
@@ -379,6 +397,7 @@
   .topbar.nav-open .nav-toggle span:nth-child(3){
     transform: translateY(-8px) rotate(-45deg);
   }
+
 
   .drop{
     width: 100%;
@@ -435,6 +454,7 @@
 
   .drop::after{ display: none; }
 
+
   .topbar.nav-open .nav,
   .topbar.is-solid.nav-open .nav{
     color: rgba(255,255,255,.92);
@@ -456,6 +476,7 @@
   .topbar.nav-open .recruit:hover{
     background-color: rgba(255,255,255,.10);
   }
+
 
 .topbar.nav-open:not(.is-solid) .nav-toggle span{
   background: rgba(255,255,255,.92);
@@ -555,6 +576,7 @@
     border-bottom-color: rgba(255,255,255,.40);
   }
 
+
   .section{
     padding: 74px var(--padX);
     background:#fff;
@@ -563,6 +585,7 @@
     max-width: 1800px;
     margin: 0 auto;
   }
+
 
   .about-layout{
     display:flex;
@@ -611,6 +634,7 @@
     font-weight: 500;
     color: rgba(16,24,40,.92);
   }
+
 
   .about-stack{
     width: min(1200px, 100%);
@@ -698,6 +722,7 @@
     justify-content:flex-end;
   }
 
+
   body.modal-open{ overflow: hidden; }
 
   .modal-overlay{
@@ -768,6 +793,7 @@
     white-space: pre-line;
   }
 
+
   .footer{
     padding: 64px var(--padX);
     background: #fff;
@@ -827,6 +853,7 @@
     letter-spacing: .02em;
   }
 
+
   body.preload .hero-bg{ opacity: 1 !important; }
   body.preload .hero-inner > div{ opacity: 1; transform: translateY(10px); }
   body.preload .hero-socials{ opacity: 1; transform: translateY(10px); }
@@ -853,6 +880,7 @@
     opacity: 1;
     transform: translateY(0);
   }
+
 
   @media (max-width: 1180px){
     .about-side{ width: 320px; flex-basis: 320px; margin-left: 40px; }
@@ -883,27 +911,28 @@
     .footer-links{ align-items:flex-start; }
   }
 
+
   @media (prefers-reduced-motion: reduce){
     *{ transition: none !important; scroll-behavior: auto !important; }
     .hero-bg{ transition: none !important; }
   }
+
 
   .page-clip{ overflow-x: clip; }
   @supports not (overflow-x: clip){
     .page-clip{ overflow-x: hidden; }
   }
 </style>
-  <link rel="stylesheet" href="../assets/site.css">
 </head>
 
 <body class="preload">
-<a class="skip-link" href="#main-content">Skip to content</a>
 
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <a class="brand brand-float" href="../index.html" aria-label="Home">
       <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
     </a>
+
 
     <button class="nav-toggle"
             type="button"
@@ -920,23 +949,22 @@
             ABOUT US <span class="caret" aria-hidden="true"></span>
           </button>
           <div class="menu" role="menu" aria-label="About menu">
-            <a href="../about/index.html" aria-current="page" role="menuitem">ABOUT</a>
+            <a href="../about/index.html" role="menuitem">ABOUT</a>
             <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
-            <a href="../faq/index.html" role="menuitem">FAQ</a>
           </div>
         </div>
 
         <a href="../events/index.html">EVENTS</a>
         <a href="../alumni/index.html">ALUMNI</a>
-                <a href="../contact/index.html">CONTACT</a>
-        <a href="../recruitment/index.html">RECRUITMENT</a>
-        <a class="recruit" href="../newsletter/index.html">JOIN MAILING LIST</a>
+        <a href="../faq/index.html">FAQ</a>
+        <a href="../contact/index.html">CONTACT</a>
+        <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
       </div>
     </nav>
   </div>
 </header>
 
-<main class="page-clip" id="main-content" tabindex="-1">
+<main class="page-clip">
 
   <section class="hero" id="hero">
     <div class="hero-bg a" id="bgA"></div>
@@ -959,9 +987,11 @@
   </section>
 </main>
 
+
 <section class="section reveal" id="about">
   <div class="wrap">
     <div class="about-layout">
+
 
       <div class="about-main">
         <h2 class="block-title">Who We Are</h2>
@@ -1010,6 +1040,7 @@ opportunity to explore career paths in the process.</p>
         </div>
       </div>
 
+
       <aside class="about-side" aria-label="Campus photo">
         <div class="side-photo" style="--img:url('../verticals/im7.jpg');"></div>
       </aside>
@@ -1018,6 +1049,7 @@ opportunity to explore career paths in the process.</p>
   </div>
 </section>
 
+
 <div class="modal-overlay" id="modalOverlay" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalBody">
     <button class="modal-close" id="modalClose" type="button" aria-label="Close">✕</button>
@@ -1025,6 +1057,7 @@ opportunity to explore career paths in the process.</p>
     <p class="modal-body" id="modalBody"></p>
   </div>
 </div>
+
 
 <footer class="footer reveal" id="contact">
   <div class="footer-inner">
@@ -1036,9 +1069,8 @@ opportunity to explore career paths in the process.</p>
     </div>
 
     <div class="footer-right">
-      <h4>Stay connected</h4>
+      <h4>Follow Us</h4>
       <div class="footer-links">
-        <a class="newsletter-link" href="../newsletter/index.html">Join the mailing list</a>
         <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
         <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
         <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
@@ -1053,7 +1085,6 @@ opportunity to explore career paths in the process.</p>
 </footer>
 
 <script>
-
   const topbar = document.getElementById("topbar");
   const heroEl = document.getElementById("hero");
   function setNavState(){
@@ -1064,7 +1095,6 @@ opportunity to explore career paths in the process.</p>
   window.addEventListener("scroll", setNavState, { passive:true });
   window.addEventListener("resize", setNavState);
   setNavState();
-
   const slides = [
     "../horizontals/im3.jpg",
     "../horizontals/im4.jpg",
@@ -1103,7 +1133,6 @@ opportunity to explore career paths in the process.</p>
   }
 
   function startSlideshow(){
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const intervalMs = parseInt(
       getComputedStyle(document.documentElement).getPropertyValue("--hero-interval-ms")
     ) || 5200;
@@ -1142,15 +1171,12 @@ opportunity to explore career paths in the process.</p>
   }
 
   document.addEventListener("DOMContentLoaded", bootHero);
-
   const revealEls = document.querySelectorAll(".reveal");
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add("in"); });
   }, { threshold: 0.01 });
   revealEls.forEach(el => io.observe(el));
-
   document.getElementById("year").textContent = new Date().getFullYear();
-
   const overlay = document.getElementById("modalOverlay");
   const modalClose = document.getElementById("modalClose");
   const modalTitle = document.getElementById("modalTitle");
