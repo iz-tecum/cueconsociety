@@ -5,7 +5,7 @@
 <title>CES Maildesk</title><link rel="stylesheet" href="../admin/styles.css"><script src="../admin/config.js" defer></script><script src="../admin/core.js" defer></script><script src="../admin/app.js" defer></script>
 </head>
 <body>
-<header><a class="brand" href="/admin/"><img class="brand-logo" src="../admin/assets/ceslogo.png" alt="" width="54" height="58"><span>CES Maildesk</span></a><div id="account" hidden><span id="accountEmail"></span><button id="logout" type="button">Log out</button></div></header>
+<header><a class="brand" href="/admin/" aria-label="Columbia Economics Society administration"><img class="brand-logo" src="../admin/assets/ceslogo.png" alt="" width="54" height="58"></a><div id="account" hidden><span id="accountEmail"></span><button id="logout" type="button">Log out</button></div></header>
 <main>
 <section id="loginPanel" class="login-panel" aria-labelledby="loginTitle">
 <h1 id="loginTitle">Sign in</h1><form id="loginForm" method="post" action="/api/admin/login"><label>Email<input id="loginEmail" name="email" type="email" autocomplete="username" required></label><label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label><button id="loginButton" type="submit">Sign in</button><p id="loginNotice" role="status"></p></form>

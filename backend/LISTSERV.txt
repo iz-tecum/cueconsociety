@@ -1,0 +1,61 @@
+CES Maildesk / Listserv handoff
+
+Maildesk prepares drafts and keeps local contact notes. Once migrated, Listserv
+is the authoritative delivery/subscription roster. This is a manual bridge,
+not a live integration. It does not create lists, log in, send commands or email,
+change contact statuses, or import anything into either system.
+
+Node 24 is sufficient; no packages or network connection are needed.
+Keep input files mode 600 and their directory mode 700, outside Git checkouts.
+Each output must be a new directory inside that private directory.
+
+First import, for a new empty list only
+node backend/listserv-bridge.mjs --mode first-import --audience /private/audience.json --output /private/initial-packet
+
+This creates subscribed-only candidate TXT plus a separate suppression reference.
+Duplicate addresses, invalid addresses, pending and unknown statuses are held
+out of the addition file. Any suppression among duplicate records takes priority.
+Review the candidate file before any approved manual import into an empty list.
+Only letters, numbers, dots, underscores, plus and hyphen are supported before
+the @ sign. Other address forms require separate review. Wildcards, slashes and
+command syntax cannot enter the action files, even if valid in another system.
+
+Reconcile an existing list using a current CSV export
+node backend/listserv-bridge.mjs --mode reconcile --audience /private/audience.json --listserv /private/current-listserv.csv --listserv-format csv --listserv-email-column "Email Address" --output /private/reconcile-packet
+
+The column name above is an example, not an assumed Listserv schema. Replace it
+with the exact header in your current export. An explicitly supplied one-address-
+per-line current roster can instead use --listserv-format email-lines.
+
+An existing local SQLite database can replace --audience:
+--database /private/ces.sqlite
+It is opened read-only. No migrations, imports or contact updates are run.
+
+Reconciliation makes a removal TXT only for local suppressed addresses that are
+actually present on the current Listserv roster. It never creates an addition
+file for local subscribers missing from Listserv. Missing addresses may already
+have unsubscribed or bounced there: review them, do not automatically re-add.
+Listserv-only contacts are reported; their presence is not imported as consent.
+Malformed roster addresses force report-only output. Source files stay unchanged.
+
+Files
+01_initial_subscribed_candidates.txt — first-import candidates, if any.
+02_remove_local_suppressed_present_on_listserv.txt — removals, if any.
+suppression_exclusions.csv — reference, never an addition/import file.
+review_missing_from_listserv.csv — consent review, never an add/re-add file.
+review_held_records.csv — duplicates and unconfirmed statuses.
+reconciliation.json — counts, discrepancies, source fingerprints and limitations.
+
+CUIT documents Subscriber Reports → Bulk Operations with a TXT file, one email
+per line. Choose the appropriate add-imported-addresses or remove-imported-
+addresses action manually. Do not choose replace-all. This bridge emits no
+Listserv command syntax and never performs those operations.
+https://www.cuit.columbia.edu/listserv
+https://lsoft.com/news/techtipLSV-issue5-2019.asp
+
+Creation requires the university's list request/ownership process. Current
+pricing and approval are separate from this offline tool. CUIT's documented
+email-delivered subscriber export sends mail; it has not been requested here.
+Prefer an available browser export, or obtain a current roster separately.
+
+Tests: node --test backend/tests/listserv-bridge.test.mjs
