@@ -2,7 +2,7 @@
 'use strict';
 const assetRoot='https://admin.cueconsociety.com/admin/assets/';
 const font='Arial, Helvetica, sans-serif';
-const navy='#0b1220', blue='#dbf2ff';
+const navy='#0b1220';
 const escape=value=>String(value??'').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
 function safeURL(value){
   if(typeof value!=='string'||/[\u0000-\u0020\u007f]/.test(value))return '';
@@ -43,14 +43,12 @@ function renderEmailHTML(draft={},options={}){
     (preheader?'<div aria-hidden="true" style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">'+preheader+'</div>':'')+
     '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f3f6f8" style="width:100%;border-collapse:collapse;"><tr><td align="center" style="padding:24px 10px;">'+
     '<table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" bgcolor="#ffffff" style="width:100%;max-width:600px;border-collapse:collapse;">'+
-    '<tr><td bgcolor="'+navy+'" style="padding:23px 28px;background-color:'+navy+';"><table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;"><tr>'+
-    '<td width="64" valign="middle" style="width:64px;padding-right:19px;"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+assetRoot+'ceslogo.png" width="54" height="63" alt="CES" style="display:block;width:54px;height:63px;border:0;"></a></td>'+
-    '<td valign="middle"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+assetRoot+'email-wordmark.png" width="178" height="83" alt="Columbia Economics Society" style="display:block;width:178px;max-width:100%;height:auto;border:0;color:#ffffff;font-family:Georgia, Times New Roman, serif;font-size:17px;"></a></td></tr></table></td></tr>'+
-    '<tr><td height="1" bgcolor="#b8d3e3" style="height:1px;font-size:0;line-height:0;background-color:#b8d3e3;">&nbsp;</td></tr>'+
-    '<tr><td bgcolor="'+blue+'" style="padding:28px 28px 0;background-color:'+blue+';">'+
-    '<h1 style="margin:0;font-family:'+font+';font-size:32px;line-height:1.12;font-weight:700;letter-spacing:-0.5px;color:'+navy+';word-break:break-word;">'+subject+'</h1>'+
-    (preheader?'<p style="margin:16px 0 0;font-family:'+font+';font-size:16px;line-height:1.5;color:#26445b;">'+preheader+'</p>':'')+'</td></tr>'+
-    '<tr><td bgcolor="'+blue+'" style="padding:0;background-color:'+blue+';"><img src="'+assetRoot+'email-campus-watercolor.jpg" width="600" height="200" alt="" role="presentation" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'+
+    '<tr><td background="'+assetRoot+'email-campus-overlay.jpg" bgcolor="#294d70" valign="top" style="padding:28px 28px 44px;background-color:#294d70;background-image:url('+assetRoot+'email-campus-overlay.jpg);background-position:center center;background-size:cover;background-repeat:no-repeat;">'+
+    '<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;"><tr>'+
+    '<td width="58" valign="middle" style="width:58px;padding-right:17px;"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+assetRoot+'ceslogo.png" width="48" height="56" alt="CES" style="display:block;width:48px;height:56px;border:0;"></a></td>'+
+    '<td valign="middle"><a href="https://cueconsociety.com/" style="text-decoration:none;"><img src="'+assetRoot+'email-wordmark.png" width="158" height="73" alt="Columbia Economics Society" style="display:block;width:158px;max-width:100%;height:auto;border:0;color:#ffffff;font-family:Georgia, Times New Roman, serif;font-size:17px;"></a></td></tr></table>'+
+    '<h1 style="margin:24px 0 0;max-width:340px;font-family:'+font+';font-size:30px;line-height:1.16;font-weight:700;letter-spacing:-0.5px;color:#ffffff;text-shadow:0 1px 3px rgba(10,35,58,.22);word-break:break-word;">'+subject+'</h1>'+
+    (preheader?'<p style="margin:12px 0 0;max-width:330px;font-family:'+font+';font-size:15px;line-height:1.5;color:#ffffff;text-shadow:0 1px 3px rgba(10,35,58,.22);">'+preheader+'</p>':'')+'</td></tr>'+
     '<tr><td style="padding:26px 28px 16px;font-family:'+font+';font-size:16px;line-height:1.65;color:'+navy+';word-break:break-word;">'+renderBodyHTML(draft.body)+'</td></tr>'+
     '<tr><td background="'+assetRoot+'email-watercolor-footer.jpg" bgcolor="#f3f8fb" style="padding:24px 28px 40px;background-color:#f3f8fb;background-image:url('+assetRoot+'email-watercolor-footer.jpg);background-position:center bottom;background-size:cover;font-family:'+font+';font-size:12px;line-height:1.7;color:'+navy+';">'+
     '<strong>Columbia Economics Society</strong><br><a href="https://cueconsociety.com/" style="color:'+navy+';text-decoration:underline;">cueconsociety.com</a>'+recipient+'<br>'+unsubscribeHTML+'</td></tr>'+

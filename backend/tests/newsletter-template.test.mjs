@@ -14,7 +14,8 @@ test('browser and CommonJS share the exact same renderer without scripts or web-
   const html = template.renderEmailHTML(draft);
   assert.equal(context.CESNewsletter.renderEmailHTML(draft), html);
   assert.match(html, /<table role="presentation"/);
-  assert.match(html, /background-color:#dbf2ff/);
+  assert.match(html, /background="https:\/\/admin\.cueconsociety\.com\/admin\/assets\/email-campus-overlay\.jpg" bgcolor="#294d70"/);
+  assert.match(html, /<h1[^>]*color:#ffffff[^>]*>This week at CES<\/h1>/);
   assert.match(html, /font-family:Arial, Helvetica, sans-serif/);
   assert.doesNotMatch(html, /<script|<link|@font-face|border-radius|display:flex|display:grid/i);
 });

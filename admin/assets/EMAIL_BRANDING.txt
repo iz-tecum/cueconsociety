@@ -1,7 +1,7 @@
 CES email branding — 2026-10-13
 
 ceslogo.png is the unchanged original CES website logo.
-email-wordmark.png is the original transparent white three-line wordmark extracted from page 1 of CES_2026-2027_Sponsorship_Prospectus.pdf (PDF image X23, 444 x 206 pixels). Its typography is raster artwork; no exact font family is claimed. Use only in the top masthead on navy. Body text remains Arial/Helvetica for email compatibility.
+email-wordmark.png is the original transparent white three-line wordmark extracted from page 1 of CES_2026-2027_Sponsorship_Prospectus.pdf (PDF image X23, 444 x 206 pixels). Its typography is raster artwork; no exact font family is claimed. Use only at the top of the illustrated banner, over the blue tonal wash. Body text remains Arial/Helvetica for email compatibility.
 
 email-campus-watercolor.jpg and email-watercolor-footer.jpg replace the rejected geometric linework. They are newly generated editorial artwork, not recovered CES photographs or original Instagram artwork. The campus illustration combines Low Library and Manhattan as an artistic collage, not a literal geographic viewpoint. The footer uses a restrained blue watercolor wash, foliage and ivory stone. These images are decorative and contain no message text or data; message content and unsubscribe links remain live HTML. JPG copies are proportionally downsampled and compressed from generated originals for email loading.
 
@@ -15,3 +15,5 @@ Drive evidence: CES Info Session 2025-26 Slideshow, Canva-exported PDF. Pages 1 
 https://drive.google.com/file/d/1DUdk7ZcOiFnJ8qnoMOJQaPOovUUlIO2v/view
 
 Images are served from the public admin/assets path. Audience data and sender credentials are never included. Actual From headers remain visible in mail clients. The HTML/plain-text footer omits the university line and decorative sender address while retaining individual unsubscribe controls.
+
+October 13 banner overlay update: email-campus-overlay.jpg is a tonal edit of email-campus-watercolor.jpg, preserving its architecture and painted composition while adding a smooth slate-blue wash at the left for white text contrast. The logo, white wordmark, live subject and preheader now share one continuous background cell. There is no separate black masthead or light-blue subject band. The original watercolor remains available for reference. #294d70 is the opaque background fallback when images are unavailable.
