@@ -51,11 +51,11 @@ test('body formatting preserves headings, lists, bold, line breaks and Unicode a
 test('section rules, callouts and standalone action links create distinct email-safe blocks', () => {
   const body = '## Next event\n\n> **Thursday** · 7 PM\n> Room 301\n\n[View event](https://cueconsociety.com/events/)\n\n---\n\n- One opportunity\n- Another opportunity';
   const html = template.renderBodyHTML(body);
-  assert.match(html, /border-left:3px solid #0b1220/);
   assert.match(html, /<strong>Thursday<\/strong> · 7 PM<br>Room 301/);
   assert.match(html, /bgcolor="#0b1220"[^>]*><a href="https:\/\/cueconsociety\.com\/events\/"/);
   assert.match(html, /height="1" bgcolor="#b8ccd8"/);
-  assert.match(html, /bgcolor="#f3f8fb"/);
+  assert.match(html, /<ul style="margin:0 0 22px;padding-left:20px;/);
+  assert.doesNotMatch(html, /border-left|bgcolor="#edf7fd"|bgcolor="#f3f8fb"/);
   assert.doesNotMatch(html, /<script|<style|<link|border-radius|display:flex|display:grid/i);
   const unsafe = template.renderBodyHTML('[bad](javascript:alert(1))\n\n[bad](https://user:password@example.org/)\n\n> <img src=x onerror=alert(1)>');
   assert.doesNotMatch(unsafe, /<a |<img /);
@@ -82,24 +82,23 @@ test('a section heading after an explicit divider adds no duplicate rule or top 
   assert.match(template.renderBodyHTML('## Opportunities'), /border-top:1px solid #c9dae5/);
 });
 
-test('consecutive allowlisted event fields render compact labeled detail rows', () => {
-  const html = template.renderBodyHTML('> Who: Columbia students\n> When: [Date] · [Time] ET\n> Where: [Location]\n> Deadline: [Date]\n> Cost: Free\n> format: In person');
-  for (const label of ['WHO', 'WHEN', 'WHERE', 'DEADLINE', 'COST', 'FORMAT']) assert.match(html, new RegExp('>' + label + '</td>'));
-  assert.equal((html.match(/<tr>/g) || []).length, 6);
-  assert.equal((html.match(/border-bottom:1px solid #c4dae8/g) || []).length, 10);
+test('consecutive allowlisted event fields render unboxed title-case labeled text lines', () => {
+  const html = template.renderBodyHTML('> Who: Columbia students\n> What: A discussion\n> When: [Date] · [Time] ET\n> Where: [Location]\n> Deadline: [Date]\n> Cost: Free\n> format: In person');
+  for (const label of ['Who', 'What', 'When', 'Where', 'Deadline', 'Cost', 'Format']) assert.match(html, new RegExp('<strong>' + label + ':</strong> '));
+  assert.equal((html.match(/<br>/g) || []).length, 6);
   assert.match(html, /Columbia students/); assert.match(html, /\[Date\] · \[Time\] ET/);
-  assert.match(html, /width="100%"/); assert.match(html, /word-break:break-word/);
-  assert.doesNotMatch(html, /border-radius|display:grid|display:flex|<img/);
+  assert.match(html, /font-size:15px;line-height:1.7/); assert.match(html, /word-break:break-word/);
+  assert.doesNotMatch(html, /<table|<tr|<td|background|bgcolor|border|display:grid|display:flex|<img/);
 });
 
 test('unstructured, incomplete or mixed callouts retain their ordinary rendering', () => {
   for (const body of ['> Who: Columbia students', '> Who: Columbia students\n> Notes: Bring questions', '> Who: Columbia students\n> When: ', '> A short reminder\n> Bring questions']) {
     const html = template.renderBodyHTML(body);
-    assert.match(html, /padding:16px 18px/);
-    assert.doesNotMatch(html, />WHO<\/td>|>WHEN<\/td>/);
+    assert.match(html, /^<p style="margin:0 0 22px;/);
+    assert.doesNotMatch(html, /<strong>Who:<\/strong>|<strong>When:<\/strong>|<table|background|border/);
   }
   const split = template.renderBodyHTML('> Who: Columbia students\n\n> When: Thursday');
-  assert.equal((split.match(/padding:16px 18px/g) || []).length, 2);
+  assert.equal((split.match(/<p style="margin:0 0 22px;/g) || []).length, 2);
 });
 
 test('event values remain escaped with only the existing safe inline formatting', () => {
