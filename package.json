@@ -7,7 +7,8 @@
   },
   "scripts": {
     "test": "node --test tests/newsletter*.test.js",
-    "newsletter": "node scripts/newsletter.mjs"
+    "newsletter": "node scripts/newsletter.mjs",
+    "sync:public": "node scripts/sync-public-content.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,54 @@
+{
+  "email": "econboard@columbia.edu",
+  "mailingList": {
+    "label": "Join the mailing list",
+    "href": "/newsletter/"
+  },
+  "recruitmentContacts": [
+    "Nicole Huang",
+    "Derek Qian",
+    "Eman Khokhar",
+    "Carlos Murillo"
+  ],
+  "alumni": {
+    "year": 2026,
+    "people": [
+      {
+        "name": "Joshua Park",
+        "url": "https://www.linkedin.com/in/joshua-park-829821260/"
+      },
+      {
+        "name": "Jocelyn Chu",
+        "url": "https://www.linkedin.com/in/jocelynvchu/"
+      },
+      {
+        "name": "Jacqueline Yang",
+        "url": "https://www.linkedin.com/in/jacqueyang/"
+      },
+      {
+        "name": "Ellie Reidenbach",
+        "url": "https://www.linkedin.com/in/elliereidenbach/"
+      },
+      {
+        "name": "Ishaan Singh",
+        "url": "https://www.linkedin.com/in/ishaansingh205/"
+      },
+      {
+        "name": "Justin Burks Jr.",
+        "url": "https://www.linkedin.com/in/justinburksjr/"
+      },
+      {
+        "name": "Renee Jiang",
+        "url": "https://www.linkedin.com/in/renee-jiang7/"
+      },
+      {
+        "name": "Siddharth Sundararajan",
+        "url": "https://www.linkedin.com/in/siddharth-sundararajan-b1a269209/"
+      },
+      {
+        "name": "Vinson Zhang",
+        "url": "https://www.linkedin.com/in/vinsonzhang04/"
+      }
+    ]
+  }
+}
