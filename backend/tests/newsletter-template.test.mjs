@@ -82,9 +82,38 @@ test('a section heading after an explicit divider adds no duplicate rule or top 
   assert.match(template.renderBodyHTML('## Opportunities'), /border-top:1px solid #c9dae5/);
 });
 
+test('consecutive allowlisted event fields render compact labeled detail rows', () => {
+  const html = template.renderBodyHTML('> Who: Columbia students\n> When: [Date] · [Time] ET\n> Where: [Location]\n> Deadline: [Date]\n> Cost: Free\n> format: In person');
+  for (const label of ['WHO', 'WHEN', 'WHERE', 'DEADLINE', 'COST', 'FORMAT']) assert.match(html, new RegExp('>' + label + '</td>'));
+  assert.equal((html.match(/<tr>/g) || []).length, 6);
+  assert.equal((html.match(/border-bottom:1px solid #c4dae8/g) || []).length, 10);
+  assert.match(html, /Columbia students/); assert.match(html, /\[Date\] · \[Time\] ET/);
+  assert.match(html, /width="100%"/); assert.match(html, /word-break:break-word/);
+  assert.doesNotMatch(html, /border-radius|display:grid|display:flex|<img/);
+});
+
+test('unstructured, incomplete or mixed callouts retain their ordinary rendering', () => {
+  for (const body of ['> Who: Columbia students', '> Who: Columbia students\n> Notes: Bring questions', '> Who: Columbia students\n> When: ', '> A short reminder\n> Bring questions']) {
+    const html = template.renderBodyHTML(body);
+    assert.match(html, /padding:16px 18px/);
+    assert.doesNotMatch(html, />WHO<\/td>|>WHEN<\/td>/);
+  }
+  const split = template.renderBodyHTML('> Who: Columbia students\n\n> When: Thursday');
+  assert.equal((split.match(/padding:16px 18px/g) || []).length, 2);
+});
+
+test('event values remain escaped with only the existing safe inline formatting', () => {
+  const body = '> Who: <img src=x onerror=alert(1)>\n> Where: **Room 301** · [Details](https://example.org/?a=1&b=2)\n> Cost: [bad](javascript:alert(1))';
+  const html = template.renderBodyHTML(body);
+  assert.doesNotMatch(html, /<img|href="javascript:|<script/);
+  assert.match(html, /&lt;img/); assert.match(html, /<strong>Room 301<\/strong>/);
+  assert.match(html, /href="https:\/\/example\.org\/\?a=1&amp;b=2"/);
+  assert.equal(template.renderBodyText('> Who: Columbia students\n> When: Thursday'), 'Who: Columbia students\nWhen: Thursday');
+});
+
 test('actual MIME matches the refined preview and readable plain text with individual unsubscribe links', async () => {
   const env = { GMAIL_UNSUBSCRIBE_ORIGIN: 'https://admin.cueconsociety.com', GMAIL_UNSUBSCRIBE_SECRET: 'template-test-unsubscribe-secret-at-least32' };
-  const snapshot = { subject: 'Next at CES', preheader: 'One event and two opportunities', body: '## Next event\n\n> Thursday · 7 PM\n> Room 301\n\n[View event](https://cueconsociety.com/events/)\n\n---\n\n- One\n- Two' };
+  const snapshot = { subject: 'Next at CES', preheader: 'One event and two opportunities', body: '## Next event\n\n> Who: Columbia students\n> When: Thursday · 7 PM\n> Where: Room 301\n\n[View event](https://cueconsociety.com/events/)\n\n---\n\n- One\n- Two' };
   const campaign = { snapshot_json: JSON.stringify(snapshot), from_email: 'sender@columbia.edu' };
   const job = { id: 'a'.repeat(32), contact_id: 'b'.repeat(64), recipient_email: 'reader@example.org', message_id: '<ces.test-message@cueconsociety.com>' };
   const message = Buffer.from(await renderMessage(env, campaign, job, 0), 'base64url').toString();

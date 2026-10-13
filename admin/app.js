@@ -51,7 +51,7 @@ function clearStagedSelection() {
 function markDirty() { dirty = true; clearStagedSelection(); $('draftState').textContent = 'Unsaved changes'; renderSendingControls(); }
 function setBusy(value) {
   busy = value;
-  for (const id of ['reload', 'saveDraft', 'pause', 'unsubscribe', 'newDraft', 'exampleDraft', 'draftList', 'subject', 'preheader', 'body', 'selectAll', 'selectMatching', 'clearSelection']) $(id).disabled = value;
+  for (const id of ['reload', 'saveDraft', 'pause', 'unsubscribe', 'newDraft', 'exampleDraft', 'exampleFormat', 'draftList', 'subject', 'preheader', 'body', 'selectAll', 'selectMatching', 'clearSelection']) $(id).disabled = value;
   for (const checkbox of $('contacts').querySelectorAll('input[type=checkbox]')) checkbox.disabled = value || checkbox.dataset.suppressed === 'true';
   if (!value) updateSelection();
   renderSendingControls();
@@ -329,10 +329,19 @@ async function newDraft() {
   dirty = false; $('draftState').textContent = 'Unsaved draft'; renderDraftList(); preview(); renderSendingControls();
 }
 async function exampleDraft() {
-  if (busy || dispatchCampaignId || (dirty && !await ask('Use example?', 'This replaces the unsaved text. Your recipient selection stays the same.', 'Use example'))) return;
+  if (busy || sendingBusy || dispatchCampaignId || (dirty && !await ask('Use example?', 'This replaces the unsaved text. Your recipient selection stays the same.', 'Use example'))) return;
   draftId = ''; $('subject').value = 'Example · This week at CES';
   $('preheader').value = 'Events and opportunities';
   $('body').value = '## Next event\n\n[Event title]\n\n> [Day] · [Time]\n> [Location]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\n---\n\n## Opportunities\n\n- [Opportunity] — [deadline]\n- [Application link or next step]\n\nBest,\nCES';
+  if ($('exampleFormat').value === 'event') {
+    $('subject').value = 'Example · [Event title]';
+    $('preheader').value = 'Event details';
+    $('body').value = '> Who: [Audience]\n> When: [Day] · [Time] ET\n> Where: [Location]\n> Deadline: [Date]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\nBest,\nCES';
+  } else if ($('exampleFormat').value === 'opportunity') {
+    $('subject').value = 'Example · [Opportunity title]';
+    $('preheader').value = 'Who can apply and how';
+    $('body').value = '> Who: [Audience]\n> Deadline: [Date]\n> Format: [In person / online]\n\n[One sentence on the opportunity and next step.]\n\n[View CES](https://cueconsociety.com/)\n\nBest,\nCES';
+  }
   markDirty(); renderDraftList(); preview(); $('draftState').textContent = 'Example · not saved';
 }
 function sendingNote(message) { $('sendingProgress').textContent = message; }
@@ -359,7 +368,7 @@ function renderSendingControls() {
   const active = Boolean(dispatchCampaignId), locked = busy || sendingBusy;
   const verified = connectionVerified(), ready = sendingReady();
   const status = sendingCampaign?.status;
-  for (const id of ['subject', 'preheader', 'body', 'newDraft', 'exampleDraft', 'saveDraft', 'draftList', 'selectAll', 'selectMatching']) $(id).disabled = locked || active;
+  for (const id of ['subject', 'preheader', 'body', 'newDraft', 'exampleDraft', 'exampleFormat', 'saveDraft', 'draftList', 'selectAll', 'selectMatching']) $(id).disabled = locked || active;
   for (const id of ['clearSelection', 'pause', 'unsubscribe']) $(id).disabled = locked || active || !recipients().length;
   for (const checkbox of $('contacts').querySelectorAll('input[type=checkbox]')) checkbox.disabled = locked || active || checkbox.dataset.suppressed === 'true';
   $('stageCampaign').disabled = locked || active || !recipients().length || !$('subject').value.trim() || !$('body').value.trim();
