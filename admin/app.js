@@ -330,7 +330,7 @@ async function newDraft() {
 }
 async function exampleDraft() {
   if (busy || sendingBusy || dispatchCampaignId || (dirty && !await ask('Use example?', 'This replaces the unsaved text. Your recipient selection stays the same.', 'Use example'))) return;
-  draftId = ''; $('subject').value = 'Example · This week at CES';
+  draftId = ''; $('subject').value = 'Newsletter [CES]';
   $('preheader').value = 'Events and opportunities';
   $('body').value = '## Next event\n\n[Event title]\n\n> [Day] · [Time]\n> [Location]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\n---\n\n## Opportunities\n\n- [Opportunity] — [deadline]\n- [Application link or next step]\n\nBest,\nExecutive Board';
   if ($('exampleFormat').value === 'event') {
