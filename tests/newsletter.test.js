@@ -335,12 +335,24 @@ test('Private Blob reads bypass caches and writes require matching ETags', async
   await store.write(current.state, current.etag);
   assert.equal(calls[0][2].access, 'private');
   assert.equal(calls[0][2].useCache, false);
+  assert.deepEqual(calls[0][2].headers, { 'accept-encoding': 'identity' });
   assert.equal(calls[1][2].access, 'private');
   assert.equal(calls[1][2].ifMatch, 'etag1');
   assert.equal(calls[1][2].allowOverwrite, true);
   await store.write(state, undefined);
   assert.equal(calls[2][2].allowOverwrite, false);
   assert.equal('ifMatch' in calls[2][2], false);
+});
+
+test('Private Blob rejects weak ETags rather than weakening conditional-write guarantees', async () => {
+  const sdk = {
+    async get() {
+      return { statusCode: 200, blob: { etag: 'W/"compressed"', size: 100 }, stream: new Response(JSON.stringify(emptyState(NOW))).body };
+    },
+    async put() { throw new Error('Must not write with a weak ETag'); }
+  };
+  const store = createBlobStore({ token: ENV.BLOB_READ_WRITE_TOKEN, sdk });
+  await assert.rejects(store.read(), /could not be read/);
 });
 
 test('Repeated CAS conflicts stop after a bounded retry count', async () => {
