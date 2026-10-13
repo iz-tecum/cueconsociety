@@ -25,11 +25,11 @@ async function privateFiles(t, values = config) {
   return { directory, configFile, clientFile };
 }
 
-function googleMock({ principal = options.principal, verified = true, from = options.from, aliasStatus = 'accepted', aliasResponse, scope = `openid email ${SEND} ${ALIAS}`, refresh = 'private-refresh-token' } = {}) {
+function googleMock({ principal = options.principal, verified = true, from = options.from, aliasStatus = 'accepted', aliasResponse, scope = `openid email ${SEND} ${ALIAS}`, refresh = 'private-refresh-token', redirect = 'error' } = {}) {
   const calls = [];
   const fetchImpl = async (url, init) => {
     calls.push({ url, init });
-    assert.equal(init.redirect, 'error');
+    assert.equal(init.redirect, redirect);
     assert.ok(init.signal instanceof AbortSignal);
     const body = url === 'https://oauth2.googleapis.com/token' ? { access_token: 'private-access-token', refresh_token: refresh, token_type: 'Bearer', scope }
       : url.startsWith('https://oauth2.googleapis.com/tokeninfo?') ? { aud: client.installed.client_id, scope }
@@ -214,10 +214,11 @@ test('prepared credentials stay private and disabled while the unchanged runtime
   assert.equal(saved.GMAIL_SEND_ENABLED, 'false'); assert.equal(saved.GMAIL_REFRESH_TOKEN, 'private-refresh-token');
   assert.equal(saved.ADMIN_EMAIL, config.ADMIN_EMAIL); assert.equal(saved.aliasVerified, undefined); assert.equal(saved.connectionPending, undefined);
   assert.equal((await stat(files.configFile)).mode & 0o777, 0o600);
-  const runtime = createGmailAdapter(saved, { fetchImpl: mock.fetchImpl });
+  const runtimeMock = googleMock({ from: 'econboard@example.edu', aliasStatus: 'pending', redirect: 'manual' });
+  const runtime = createGmailAdapter(saved, { fetchImpl: runtimeMock.fetchImpl });
   await assert.rejects(runtime.verify(), error => error.code === 'GMAIL_ALIAS_NOT_VERIFIED');
   await assert.rejects(runtime.send('never-send', {}), error => error.code === 'SENDING_DISABLED');
-  assert.ok(mock.calls.every(call => !call.url.endsWith('/send') && !call.url.endsWith('/verify')));
+  assert.ok([...mock.calls, ...runtimeMock.calls].every(call => !call.url.endsWith('/send') && !call.url.endsWith('/verify')));
 });
 
 test('private files reject broad permissions, broad parent permissions and symlinks', async t => {
