@@ -65,7 +65,8 @@ async function verifyConnection(env, adapter, now) {
   const attempt = `${scope.attempt}${crypto.randomUUID()}`;
   await env.DB.batch([
     env.DB.prepare('UPDATE send_control SET verified_principal=NULL,verified_from=NULL,verified_at=NULL WHERE id=?').bind(scope.row),
-    env.DB.prepare('DELETE FROM send_control WHERE id LIKE ? OR id LIKE ?').bind(`${scope.proof}%`, `${scope.attempt}%`),
+    env.DB.prepare('DELETE FROM send_control WHERE (id>=? AND id<?) OR (id>=? AND id<?)')
+      .bind(scope.proof, `${scope.proof}\uffff`, scope.attempt, `${scope.attempt}\uffff`),
     env.DB.prepare('INSERT INTO send_control(id) VALUES(?)').bind(attempt)
   ]);
   try {

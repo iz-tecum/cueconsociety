@@ -223,6 +223,27 @@ test('two admins have isolated senders, proofs and campaign ownership', async t 
   assert.equal(f.calls.filter(call => call.endpoint.endsWith('/messages/send')).length, 0);
 });
 
+test('long identity proof prefixes respect D1 pattern limits and clean up only their own identity', async t => {
+  const f = await setup(t), a = await f.login(), b = await f.login();
+  f.database.database.function('like', (pattern, value) => {
+    if (pattern.length > 50) throw new Error('LIKE or GLOB pattern too complex');
+    return Number(pattern.endsWith('%') ? value.startsWith(pattern.slice(0, -1)) : value === pattern);
+  });
+  await f.connect(a, 'alice'); await f.connect(b, 'bob');
+  const check = session => f.request(session, '/api/admin/sending/check', { method: 'POST', body: {} });
+  assert.equal((await check(b)).status, 200);
+  const ownScope = await sha256('subject-alice'), otherScope = await sha256('subject-bob');
+  const before = (await f.database.prepare('SELECT id FROM send_control ORDER BY id').all()).results.map(row => row.id).filter(id => id.includes(otherScope));
+  for (const stale of [`gmail-check:${ownScope}:old-proof`, `gmail-check-attempt:${ownScope}:old-attempt`]) await f.database.prepare('INSERT INTO send_control(id) VALUES(?)').bind(stale).run();
+  assert.equal((await check(a)).status, 200); assert.equal((await check(a)).status, 200);
+  const ids = (await f.database.prepare('SELECT id FROM send_control ORDER BY id').all()).results.map(row => row.id);
+  assert.equal(ids.filter(id => id.startsWith(`gmail-check:${ownScope}:`)).length, 1);
+  assert.equal(ids.filter(id => id.startsWith(`gmail-check-attempt:${ownScope}:`)).length, 0);
+  assert.deepEqual(ids.filter(id => id.includes(otherScope)), before);
+  assert.equal((await f.status(a)).connectionVerified, true); assert.equal((await f.status(b)).connectionVerified, true);
+  assert.ok(f.calls.every(call => !call.endpoint.includes('/messages/send')));
+});
+
 test('disconnect and logout remove only the calling session access without revoking another connection', async t => {
   const f = await setup(t), a = await f.login(), b = await f.login(), c = await f.login();
   await f.connect(a, 'alice'); await f.connect(b, 'bob'); await f.connect(c, 'alice');
