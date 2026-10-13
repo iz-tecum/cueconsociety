@@ -1,0 +1,6 @@
+Montserrat Latin variable font, Google Fonts v31
+Downloaded 2026-10-13
+Source stylesheet: https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap
+Font: https://fonts.gstatic.com/s/montserrat/v31/JTUSjIg1_i6t8kCHKm459Wlhyw.woff2
+License: https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/OFL.txt
+Served locally with no third-party font requests.
