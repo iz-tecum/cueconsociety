@@ -928,7 +928,7 @@
 
 
             <div class="form-card">
-<form id="contactForm" action="/api/contact" method="POST" novalidate>
+<form id="contactForm" action="https://admin.cueconsociety.com/api/contact" method="POST" novalidate>
 
   <input type="text" name="company" autocomplete="off" tabindex="-1"
          style="position:absolute;left:-9999px;opacity:0;height:0;width:0;" />
@@ -957,7 +957,7 @@
     <button class="send-btn" type="submit">Send</button>
   </div>
 
-  <p id="formStatus" style="margin:14px 0 0; font-size:14px;"></p>
+  <p id="formStatus" role="status" aria-live="polite" style="margin:14px 0 0; font-size:14px;"></p>
 </form>
 
 <script>
@@ -965,41 +965,52 @@
   const statusEl = document.getElementById("formStatus");
 
   if (form && statusEl) {
-
-    form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    statusEl.textContent = "";
-
-    const fd = new FormData(form);
-    const payload = Object.fromEntries(fd.entries());
-    if ((payload.company || "").trim().length) {
-      statusEl.textContent = "Sent!";
-      form.reset();
-      return;
-    }
-
-    try {
-      const res = await fetch("https://cueconsociety.vercel.app/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: payload.name,
-          email: payload.email,
-          subject: payload.subject,
-          message: payload.message,
-        })
-      });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || "Failed to send.");
-
-      statusEl.textContent = "Sent!";
-      form.reset();
-    } catch (err) {
-      statusEl.textContent = `Couldn’t send — ${err.message}`;
-    }
-  });
-}
+    const submitButton = form.querySelector('button[type="submit"]');
+    let submitting = false;
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (submitting || !form.reportValidity()) return;
+      const payload = Object.fromEntries(new FormData(form).entries());
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 20000);
+      submitting = true;
+      submitButton.disabled = true;
+      statusEl.textContent = "Submitting…";
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "omit",
+          referrerPolicy: "no-referrer",
+          signal: controller.signal,
+          body: JSON.stringify({
+            name: payload.name,
+            email: payload.email,
+            subject: payload.subject,
+            message: payload.message,
+            website: payload.company || ""
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok !== true) {
+          if (res.status === 429) throw new Error("Please wait before trying again.");
+          throw new Error(typeof data.error === "string" ? data.error : "Your message could not be saved. Please try again.");
+        }
+        statusEl.textContent = "Message received.";
+        form.reset();
+      } catch (error) {
+        statusEl.textContent = error.name === "AbortError"
+          ? "The request took too long. Your message is still here. Please try again."
+          : error instanceof TypeError
+            ? "Could not connect. Your message is still here. Please try again."
+            : error.message;
+      } finally {
+        window.clearTimeout(timeout);
+        submitting = false;
+        submitButton.disabled = false;
+      }
+    });
+  }
 </script>
             </div>
           </div>

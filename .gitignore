@@ -4,3 +4,8 @@ node_modules/
 .vercel/
 newsletter-private/
 *.log
+
+.wrangler/
+.dev.vars
+.dev.vars.*
+.site-build/

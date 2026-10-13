@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow,noarchive">
+<title>CES Maildesk</title><link rel="stylesheet" href="../admin/styles.css"><script src="../admin/config.js" defer></script><script src="../admin/core.js" defer></script><script src="../admin/app.js" defer></script>
+</head>
+<body>
+<header><a class="brand" href="/admin/"><span class="seal">CES</span><span>CES Maildesk</span></a><div id="account" hidden><span id="accountEmail"></span><button id="logout" type="button">Log out</button></div></header>
+<main>
+<section id="loginPanel" class="login-panel" aria-labelledby="loginTitle">
+<h1 id="loginTitle">Sign in</h1><form id="loginForm" method="post" action="/api/admin/login"><label>Email<input id="loginEmail" name="email" type="email" autocomplete="username" required></label><label>Password<input id="loginPassword" name="password" type="password" autocomplete="current-password" required></label><button id="loginButton" type="submit">Sign in</button><p id="loginNotice" role="status"></p></form>
+</section>
+<div id="workspace" hidden>
+<div class="workspace-top"><p class="snapshot" id="snapshot">Loading audience…</p><button id="reload" class="quiet" type="button">Refresh</button></div>
+<div id="notice" role="status" class="notice" hidden></div>
+<section class="stats" aria-label="Audience counts"><div><strong id="count-total">0</strong><span>All contacts</span></div><div class="active-stat"><strong id="count-subscribed">0</strong><span>Subscribed</span></div><div><strong id="count-unsubscribed">0</strong><span>Unsubscribed</span></div><div><strong id="count-cleaned">0</strong><span>Undeliverable</span></div><div><strong id="count-other">0</strong><span>Pending / archived</span></div></section>
+<nav class="tabs" aria-label="Workspace"><button id="tabAudience" class="selected" aria-controls="audiencePanel" aria-pressed="true">Audience</button><button id="tabCampaign" aria-controls="campaignPanel" aria-pressed="false">Campaign</button><button id="tabInbox" aria-controls="inboxPanel" aria-pressed="false">Inbox</button><span id="selectedCount">0 recipients selected</span></nav>
+<section id="audiencePanel" aria-label="Audience workspace">
+<div class="filters"><label class="search">Find someone<input id="search" type="search" placeholder="Name or email"></label><label>Status<select id="status"><option value="">All statuses</option><option value="subscribed">Subscribed</option><option value="unsubscribed">Unsubscribed</option><option value="cleaned">Undeliverable</option><option value="pending">Pending</option><option value="archived">Archived</option></select></label><label>Interest<select id="interest"><option value="">All interests</option></select></label><label>Source<select id="source"><option value="">All sources</option></select></label></div>
+<div class="table-actions"><div><button id="selectMatching" class="quiet">Select matching subscribers</button><button id="clearSelection" class="text-button">Clear</button></div><span id="matchCount">0 contacts</span></div>
+<div class="table-wrap"><table><thead><tr><th class="check-col">Pick</th><th>Contact</th><th>Status</th><th>Interests</th><th>Source</th></tr></thead><tbody id="contacts"><tr><td colspan="5" class="empty">Loading audience…</td></tr></tbody></table></div>
+<div class="pagination"><button id="previous" class="quiet" disabled>Previous</button><span id="pageLabel">Page 1 of 1</span><button id="next" class="quiet" disabled>Next</button></div>
+<div class="audience-footer"><div><h2>Export audience</h2><button id="exportAllCSV" class="quiet">CSV</button><button id="exportAllJSON" class="quiet">JSON</button></div><div><h2>Update selected</h2><p>Changes apply to the shared list.</p><button id="pause" class="quiet">Archive</button><button id="unsubscribe" class="quiet">Unsubscribe</button></div></div>
+</section>
+<section id="campaignPanel" aria-label="Campaign workspace" hidden>
+<div class="campaign-top"><div><h2>Draft</h2><p id="campaignAudience">Select subscribers in Audience.</p></div><div class="draft-actions"><label class="sr-only" for="draftList">Saved drafts</label><select id="draftList"><option value="">Saved drafts</option></select><button id="newDraft" class="quiet">New</button><button id="saveDraft">Save</button></div></div>
+<div class="composer"><div class="editor"><label>Subject<input id="subject" maxlength="200" placeholder="This week at CES"></label><label>Preview line<input id="preheader" maxlength="300" placeholder="A short preview"></label><label>Message<textarea id="body" rows="17" maxlength="50000" placeholder="Write your update…"></textarea></label><p class="helper">**bold** · ## heading · - list · [link](https://example.com)</p><div class="editor-meta"><span id="wordCount">0 words</span><span id="draftState">Unsaved draft</span></div></div><div class="preview"><div class="preview-title">PREVIEW</div><iframe title="Newsletter preview" id="preview" sandbox></iframe></div></div>
+<div class="prepare"><div><h2>Export campaign</h2><p>Sending is not connected.</p></div><button id="prepare">Prepare exports</button></div>
+<div id="exports" class="exports" hidden><p id="exportSummary"></p><div><button id="exportHTML" class="quiet">Email · HTML</button><button id="exportText" class="quiet">Email · text</button><button id="exportRecipientsCSV" class="quiet">Recipients · CSV</button><button id="exportRecipientsJSON" class="quiet">Recipients · JSON</button><button id="exportPackage" class="quiet">Campaign · JSON</button></div><p class="helper">Add individual unsubscribe links and recheck statuses before sending.</p></div>
+</section>
+<section id="inboxPanel" aria-label="Contact form inbox" hidden>
+<div class="inbox-top"><h2>Contact form messages</h2><button id="reloadMessages" class="quiet">Refresh inbox</button></div>
+<div class="inbox"><div id="messageList" class="message-list"><p class="empty">Loading messages…</p></div><article id="messageDetail" class="message-detail"><p class="empty">Select a message.</p></article></div>
+</section>
+<footer><span>CES MAILDESK</span><span>Private administration</span></footer>
+</div>
+</main>
+<dialog id="confirmDialog"><h2 id="confirmTitle"></h2><p id="confirmText"></p><div><button id="confirmCancel" class="quiet">Cancel</button><button id="confirmOkay">Continue</button></div></dialog>
+</body></html>
