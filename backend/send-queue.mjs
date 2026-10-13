@@ -154,7 +154,7 @@ export async function renderMessage(env, campaign, job, now = Date.now()) {
   const from = campaign.from_email;
   if (!from || /[\r\n]/.test(from) || !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(from) || /[\r\n]/.test(job.recipient_email) || !/^<ces\.[A-Za-z0-9.-]+@cueconsociety\.com>$/.test(job.message_id)) reject('Invalid message envelope.');
   const displayName = 'Columbia Economics Society';
-  const plainBody = snapshot.body.replace(/^#{1,3} /gm, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '$1 ($2)');
+  const plainBody = newsletterTemplate.renderBodyText(snapshot.body);
   const text = `${snapshot.subject}\n${snapshot.preheader ? snapshot.preheader + '\n' : ''}\n${plainBody}\n\nColumbia Economics Society · Columbia University\nUnsubscribe: ${links.page}\n`;
   const html = newsletterTemplate.renderEmailHTML(snapshot, { unsubscribeUrl: links.page, recipientEmail: job.recipient_email, fromEmail: from });
   const boundary = `ces_${job.id}`;

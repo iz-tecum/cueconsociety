@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
+import { renderMessage, unsubscribeLinks } from '../send-queue.mjs';
 const require = createRequire(import.meta.url);
 const template = require('../../admin/newsletter-template.js');
 
@@ -45,4 +46,52 @@ test('body formatting preserves headings, lists, bold, line breaks and Unicode a
   assert.match(html, /<strong>Tonight<\/strong><br>Room 301/);
   assert.equal((html.match(/<li /g) || []).length, 2);
   assert.match(html, /&lt;img src=x&gt;/);
+});
+
+test('section rules, callouts and standalone action links create distinct email-safe blocks', () => {
+  const body = '## Next event\n\n> **Thursday** · 7 PM\n> Room 301\n\n[View event](https://cueconsociety.com/events/)\n\n---\n\n- One opportunity\n- Another opportunity';
+  const html = template.renderBodyHTML(body);
+  assert.match(html, /border-left:3px solid #0b1220/);
+  assert.match(html, /<strong>Thursday<\/strong> · 7 PM<br>Room 301/);
+  assert.match(html, /bgcolor="#0b1220"[^>]*><a href="https:\/\/cueconsociety\.com\/events\/"/);
+  assert.match(html, /height="1" bgcolor="#b8ccd8"/);
+  assert.match(html, /bgcolor="#f3f8fb"/);
+  assert.doesNotMatch(html, /<script|<style|<link|border-radius|display:flex|display:grid/i);
+  const unsafe = template.renderBodyHTML('[bad](javascript:alert(1))\n\n[bad](https://user:password@example.org/)\n\n> <img src=x onerror=alert(1)>');
+  assert.doesNotMatch(unsafe, /<a |<img /);
+  assert.match(unsafe, /&lt;img/);
+});
+
+test('inbox preheader precedes the masthead, visible summary is separate, and plain text removes layout syntax', () => {
+  const body = '## Next event\n\n> **Thursday**\n> Room 301\n\n[View event](https://cueconsociety.com/events/)\n\n---\n\n- One opportunity';
+  const html = template.renderEmailHTML({ subject: 'This week', preheader: 'A unique short summary', body });
+  assert.equal(html.split('A unique short summary').length - 1, 2);
+  const hidden = html.match(/<div aria-hidden="true"[^>]*>A unique short summary<\/div>/)?.[0];
+  assert.ok(hidden); assert.match(hidden, /display:none/); assert.match(hidden, /mso-hide:all/);
+  assert.ok(html.indexOf(hidden) < html.indexOf('<table'));
+  assert.match(html, /<p[^>]*>A unique short summary<\/p>/);
+  assert.match(html, /max-width:600px/);
+  assert.equal(template.renderBodyText(body), 'Next event\n\nThursday\nRoom 301\n\nView event (https://cueconsociety.com/events/)\n\n- One opportunity');
+});
+
+test('a section heading after an explicit divider adds no duplicate rule or top gap', () => {
+  const divided = template.renderBodyHTML('---\n\n## Opportunities');
+  assert.equal((divided.match(/bgcolor="#b8ccd8"/g) || []).length, 1);
+  assert.doesNotMatch(divided, /border-top/);
+  assert.match(divided, /<h2 style="margin:0 0 14px;/);
+  assert.match(template.renderBodyHTML('## Opportunities'), /border-top:1px solid #c9dae5/);
+});
+
+test('actual MIME matches the refined preview and readable plain text with individual unsubscribe links', async () => {
+  const env = { GMAIL_UNSUBSCRIBE_ORIGIN: 'https://admin.cueconsociety.com', GMAIL_UNSUBSCRIBE_SECRET: 'template-test-unsubscribe-secret-at-least32' };
+  const snapshot = { subject: 'Next at CES', preheader: 'One event and two opportunities', body: '## Next event\n\n> Thursday · 7 PM\n> Room 301\n\n[View event](https://cueconsociety.com/events/)\n\n---\n\n- One\n- Two' };
+  const campaign = { snapshot_json: JSON.stringify(snapshot), from_email: 'sender@columbia.edu' };
+  const job = { id: 'a'.repeat(32), contact_id: 'b'.repeat(64), recipient_email: 'reader@example.org', message_id: '<ces.test-message@cueconsociety.com>' };
+  const message = Buffer.from(await renderMessage(env, campaign, job, 0), 'base64url').toString();
+  const part = type => Buffer.from(message.split('Content-Type: text/' + type + '; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n')[1].split('\r\n--')[0].replace(/\r\n/g, ''), 'base64').toString();
+  const links = await unsubscribeLinks(env, job.contact_id);
+  assert.equal(part('html'), template.renderEmailHTML(snapshot, { unsubscribeUrl: links.page, recipientEmail: job.recipient_email, fromEmail: campaign.from_email }));
+  assert.ok(part('plain').includes(template.renderBodyText(snapshot.body)));
+  assert.ok(part('plain').includes(links.page));
+  assert.doesNotMatch(part('plain'), /^>|^---|^## /m);
 });

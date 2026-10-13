@@ -108,7 +108,27 @@ function ask(title, message, okay = 'Continue') {
     dialog.oncancel = event => { event.preventDefault(); done(false); }; dialog.showModal();
   });
 }
-function filtered() { return M.filter(rows, { search: $('search').value, status: 'subscribed' }); }
+function historicalAddedTime(value) {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/.exec(String(value || ''));
+  if (!parts) return NaN;
+  const [year, month, day, hour, minute, second] = parts.slice(1).map(Number);
+  const time = Date.UTC(year, month - 1, day, hour, minute, second), date = new Date(time);
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day && date.getUTCHours() === hour && date.getUTCMinutes() === minute && date.getUTCSeconds() === second ? time : NaN;
+}
+function contactAddedTime(row) {
+  const historical = historicalAddedTime(row.addedAt);
+  return Number.isFinite(historical) ? historical : Date.parse(row.createdAt);
+}
+function filtered() {
+  const order = $('sortOrder').value;
+  return M.filter(rows, { search: $('search').value, status: 'subscribed' }).sort((a, b) => {
+    if (order === 'name' || order === 'email') return a[order].localeCompare(b[order], 'en', { sensitivity: 'base' });
+    const left = contactAddedTime(a), right = contactAddedTime(b);
+    if (!Number.isFinite(left)) return Number.isFinite(right) ? 1 : 0;
+    if (!Number.isFinite(right)) return -1;
+    return order === 'oldest' ? left - right : right - left;
+  });
+}
 function recipients() { return rows.filter(row => row.status === 'subscribed' && selected.has(row.id)); }
 function updateSelection() {
   const chosen = recipients(), count = chosen.length;
@@ -118,7 +138,9 @@ function updateSelection() {
 }
 function render() {
   const counts = M.counts(rows);
+  $('count-total').textContent = number(counts.total);
   $('count-subscribed').textContent = number(counts.subscribed);
+  $('count-cleaned').textContent = number(counts.cleaned);
   $('selectAll').textContent = 'Select all ' + number(counts.subscribed);
   $('selectMatching').hidden = !$('search').value.trim();
   const matches = filtered(), pages = Math.max(1, Math.ceil(matches.length / pageSize));
@@ -150,7 +172,9 @@ function preview() {
   $('copyCampaignRecipients').disabled = busy || Boolean(stagedPreview) || !count;
   const from = stagedPreview ? stagedPreview.from : sendingStatus?.from || '';
   const recipientEmail = !stagedPreview && chosen.length === 1 ? chosen[0].email : '';
-  $('previewTitle').textContent = stagedPreview ? 'Staged preview' : 'Email preview';
+  $('previewTitle').textContent = 'Preview';
+  $('previewTitle').title = stagedPreview ? 'Saved staged campaign' : 'Current draft';
+  $('preview').setAttribute('aria-label', stagedPreview ? 'Staged email body preview' : 'Email body preview');
   $('previewSubject').textContent = content.subject || '(no subject)';
   $('previewFrom').textContent = from ? 'Columbia Economics Society <' + from + '>' : 'Connect Google';
   $('previewTo').textContent = stagedPreview ? number(sendingCampaign?.recipientCount || 0) + ' staged subscribers' : recipientEmail || (chosen.length ? number(chosen.length) + ' selected subscribers' : 'Selected subscribers');
@@ -179,7 +203,12 @@ async function loadAudience() {
   const ids = new Map(data.records.filter(row => row && row.email && row.id != null).map(row => [String(row.email).trim().toLowerCase(), String(row.id)]));
   const normalized = M.normalize(data.records);
   if (normalized.rejected || normalized.duplicates || normalized.rows.some(row => !ids.has(row.email))) throw Error('The audience needs review before it can be edited.');
-  rows = normalized.rows.map(row => ({ ...row, id: ids.get(row.email) }));
+  const byEmail = new Map(normalized.rows.map(row => [row.email, row]));
+  rows = data.records.map(record => {
+    const email = String(record.email).trim().toLowerCase();
+    const historical = Array.isArray(record.sources) ? record.sources.find(source => source?.source === 'mailchimp-historical-date' && Number.isFinite(historicalAddedTime(source.addedAt))) : null;
+    return { ...byEmail.get(email), id: ids.get(email), ...(historical ? { addedAt: historical.addedAt } : {}) };
+  });
   selected = new Set(recipients().map(row => row.id)); audienceTime = data.updatedAt || new Date().toISOString();
   const time = new Date(audienceTime); $('snapshot').textContent = 'Updated ' + (Number.isNaN(time.getTime()) ? 'just now' : time.toLocaleString());
   render();
@@ -302,8 +331,8 @@ async function newDraft() {
 async function exampleDraft() {
   if (busy || dispatchCampaignId || (dirty && !await ask('Use example?', 'This replaces the unsaved text. Your recipient selection stays the same.', 'Use example'))) return;
   draftId = ''; $('subject').value = 'Example · This week at CES';
-  $('preheader').value = 'A sample newsletter from Columbia Economics Society';
-  $('body').value = 'Hi everyone,\n\nThis is a sample CES newsletter. Replace this text with the details of your next event or update.\n\n## Around the society\n\nBring a question, meet other students, and join the discussion. Add the confirmed time and location here before sending.\n\n- A short event announcement\n- One opportunity for members\n- A link with the full details\n\nVisit the [CES website](https://cueconsociety.com/) for more about the society.\n\nBest,\nColumbia Economics Society';
+  $('preheader').value = 'Events and opportunities';
+  $('body').value = '## Next event\n\n[Event title]\n\n> [Day] · [Time]\n> [Location]\n\n[One sentence on the topic and speaker.]\n\n[View CES](https://cueconsociety.com/)\n\n---\n\n## Opportunities\n\n- [Opportunity] — [deadline]\n- [Application link or next step]\n\nBest,\nCES';
   markDirty(); renderDraftList(); preview(); $('draftState').textContent = 'Example · not saved';
 }
 function sendingNote(message) { $('sendingProgress').textContent = message; }
@@ -516,6 +545,7 @@ $('logout').onclick = async () => {
 $('reload').onclick = refresh; $('tabAudience').onclick = () => switchPanel('audience'); $('tabCampaign').onclick = () => switchPanel('campaign');
 $('tabInbox').onclick = () => switchPanel('inbox'); $('reloadMessages').onclick = loadMessages;
 $('search').addEventListener('input', () => { page = 1; render(); });
+$('sortOrder').addEventListener('change', () => { page = 1; render(); });
 $('selectAll').onclick = () => { selected = new Set(rows.filter(row => row.status === 'subscribed').map(row => row.id)); markDirty(); render(); };
 $('selectMatching').onclick = () => { for (const row of filtered()) if (row.status === 'subscribed') selected.add(row.id); markDirty(); render(); };
 $('clearSelection').onclick = () => { selected.clear(); markDirty(); render(); };
