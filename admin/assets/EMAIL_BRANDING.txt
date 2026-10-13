@@ -1,7 +1,17 @@
 CES email branding — 2026-10-13
 
 ceslogo.png is the unchanged original CES website logo.
-email-wordmark.png is the original transparent white three-line wordmark extracted from page 1 of CES_2026-2027_Sponsorship_Prospectus.pdf (PDF image X23, 444 x 206 pixels). Its typography is raster artwork; no exact font family is claimed. Use only in the top masthead on navy. All body text remains Arial/Helvetica for email compatibility.
-email-banner-art.png and email-footer-art.png are original abstract curve-and-grid linework created for CES, at 2x display resolution. They are decorative, contain no text or data, and use the existing light blue/navy palette. They have empty alt text; essential message content stays live HTML.
+email-wordmark.png is the original transparent white three-line wordmark extracted from page 1 of CES_2026-2027_Sponsorship_Prospectus.pdf (PDF image X23, 444 x 206 pixels). Its typography is raster artwork; no exact font family is claimed. Use only in the top masthead on navy. Body text remains Arial/Helvetica for email compatibility.
 
-Images are served from the public admin/assets path; audience data and sender credentials are never included in them. The actual From header remains visible in mail clients. The HTML/plain-text footer omits the university line and decorative sender address, while retaining individual unsubscribe controls.
+email-campus-watercolor.jpg and email-watercolor-footer.jpg replace the rejected geometric linework. They are newly generated editorial artwork, not recovered CES photographs or original Instagram artwork. The campus illustration combines Low Library and Manhattan as an artistic collage, not a literal geographic viewpoint. The footer uses a restrained blue watercolor wash, foliage and ivory stone. These images are decorative and contain no message text or data; message content and unsubscribe links remain live HTML. JPG copies are proportionally downsampled and compressed from generated originals for email loading.
+
+Style evidence: CES Instagram profile reached through the public website's Events embed on October 13. Reviewed 12 visible posts showing navy and blue gradients, the original serif wordmark, campus/city photography and community photography. Executive Board 2026-2027 post uses campus and Manhattan imagery; the society-introduction post uses stone-lion imagery. Existing website highlights also use light-blue event posters and community photographs. These informed the palette and subject matter, not a claim that CES previously used watercolor.
+https://www.instagram.com/cueconsociety/
+https://www.instagram.com/cueconsociety/p/DdIJ33mkYKB/
+https://www.instagram.com/cueconsociety/p/Dc80yUEEaQc/
+https://cueconsociety.com/events/
+
+Drive evidence: CES Info Session 2025-26 Slideshow, Canva-exported PDF. Pages 1 and 3 show navy-to-pale-blue gradients with serif titles; page 5 includes event posters in the same palette; page 6 frames real community/conference photos. The 2026-27 prospectus cover uses campus architecture and soft blue shading. Social uploads reviewed also included sponsor marks and portraits. Watercolor is the new interpretation, not an existing CES style.
+https://drive.google.com/file/d/1DUdk7ZcOiFnJ8qnoMOJQaPOovUUlIO2v/view
+
+Images are served from the public admin/assets path. Audience data and sender credentials are never included. Actual From headers remain visible in mail clients. The HTML/plain-text footer omits the university line and decorative sender address while retaining individual unsubscribe controls.

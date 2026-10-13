@@ -50,10 +50,9 @@ function renderEmailHTML(draft={},options={}){
     '<tr><td bgcolor="'+blue+'" style="padding:28px 28px 0;background-color:'+blue+';">'+
     '<h1 style="margin:0;font-family:'+font+';font-size:32px;line-height:1.12;font-weight:700;letter-spacing:-0.5px;color:'+navy+';word-break:break-word;">'+subject+'</h1>'+
     (preheader?'<p style="margin:16px 0 0;font-family:'+font+';font-size:16px;line-height:1.5;color:#26445b;">'+preheader+'</p>':'')+'</td></tr>'+
-    '<tr><td bgcolor="'+blue+'" style="padding:0;background-color:'+blue+';"><img src="'+assetRoot+'email-banner-art.png" width="600" height="80" alt="" role="presentation" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'+
+    '<tr><td bgcolor="'+blue+'" style="padding:0;background-color:'+blue+';"><img src="'+assetRoot+'email-campus-watercolor.jpg" width="600" height="200" alt="" role="presentation" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'+
     '<tr><td style="padding:26px 28px 16px;font-family:'+font+';font-size:16px;line-height:1.65;color:'+navy+';word-break:break-word;">'+renderBodyHTML(draft.body)+'</td></tr>'+
-    '<tr><td bgcolor="#f3f8fb" style="padding:0;background-color:#f3f8fb;"><img src="'+assetRoot+'email-footer-art.png" width="600" height="42" alt="" role="presentation" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></td></tr>'+
-    '<tr><td bgcolor="#f3f8fb" style="padding:0 28px 22px;background-color:#f3f8fb;font-family:'+font+';font-size:12px;line-height:1.7;color:'+navy+';">'+
+    '<tr><td background="'+assetRoot+'email-watercolor-footer.jpg" bgcolor="#f3f8fb" style="padding:24px 28px 40px;background-color:#f3f8fb;background-image:url('+assetRoot+'email-watercolor-footer.jpg);background-position:center bottom;background-size:cover;font-family:'+font+';font-size:12px;line-height:1.7;color:'+navy+';">'+
     '<strong>Columbia Economics Society</strong><br><a href="https://cueconsociety.com/" style="color:'+navy+';text-decoration:underline;">cueconsociety.com</a>'+recipient+'<br>'+unsubscribeHTML+'</td></tr>'+
     '</table></td></tr></table></body></html>';
 }
