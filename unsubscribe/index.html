@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Manage your Columbia Economics Society email subscription.">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://admin.cueconsociety.com; base-uri 'none'; form-action 'none'">
+  <title>CES | Unsubscribe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/newsletter/newsletter.css">
+  <link rel="stylesheet" href="/unsubscribe/unsubscribe.css">
+  <script src="/unsubscribe/unsubscribe.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a class="brand brand-float" href="../index.html" aria-label="Home">
+      <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
+    </a>
+
+
+    <button class="nav-toggle"
+            type="button"
+            aria-label="Open menu"
+            aria-expanded="false"
+            aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav" id="mobileNav" aria-label="Primary">
+      <div class="nav-links">
+        <div class="drop" id="aboutDrop">
+          <button type="button" id="aboutBtn" aria-haspopup="true" aria-expanded="false">
+            ABOUT US <span class="caret" aria-hidden="true"></span>
+          </button>
+          <div class="menu" role="menu" aria-label="About menu">
+            <a href="../about/index.html" role="menuitem">ABOUT</a>
+            <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
+          </div>
+        </div>
+
+        <a href="../events/index.html">EVENTS</a>
+        <a href="../alumni/index.html">ALUMNI</a>
+        <a href="../faq/index.html">FAQ</a>
+        <a href="../contact/index.html">CONTACT</a>
+        <a class="recruit" href="../recruitment/index.html">RECRUITMENT</a>
+      </div>
+    </nav>
+  </div>
+</header>
+  <main id="main-content" tabindex="-1">
+    <section class="hero" id="hero" aria-labelledby="page-title">
+      <div class="hero-bg a" id="bgA"></div>
+      <div class="hero-bg b" id="bgB"></div>
+      <div class="hero-inner"><div><h1 id="page-title">Unsubscribe</h1></div></div>
+      <div class="hero-socials">
+        <div class="left">COLUMBIA ECONOMICS SOCIETY</div>
+        <div class="right"><a href="../events/">EVENTS</a><a href="mailto:econboard@columbia.edu">EMAIL</a></div>
+      </div>
+    </section>
+    <section class="newsletter-section" aria-labelledby="page-title">
+      <div class="newsletter-layout">
+        <div class="signup-panel" id="unsubscribe-content">
+          <form id="request-form" hidden novalidate>
+            <p class="form-intro">Enter the address that received the newsletter. We’ll email a private confirmation link.</p>
+            <div class="field">
+              <label for="subscriber-email">Email</label>
+              <input id="subscriber-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="254" required>
+            </div>
+            <button class="action-button" id="request-button" type="submit">Send confirmation <span aria-hidden="true">→</span></button>
+            <p id="request-status" class="status" role="status" aria-live="polite" tabindex="-1"></p>
+          </form>
+          <section id="confirmation-panel" hidden aria-labelledby="confirmation-heading">
+            <h3 id="confirmation-heading" tabindex="-1">Confirm unsubscribe</h3>
+            <p>Stop CES newsletter emails to <strong id="confirmation-email"></strong>.</p>
+            <button class="action-button" id="confirm-button" type="button">Confirm unsubscribe <span aria-hidden="true">→</span></button>
+            <p id="confirmation-status" class="status" role="status" aria-live="polite" tabindex="-1"></p>
+          </section>
+          <section id="result-panel" aria-labelledby="result-heading">
+            <h3 id="result-heading" tabindex="-1">Checking your link…</h3>
+            <p id="result-message" role="status" aria-live="polite"></p>
+            <button class="action-button" id="retry-button" type="button" hidden>Try again <span aria-hidden="true">→</span></button>
+          </section>
+          <p class="unsubscribe-help">Need help? <a href="mailto:econboard@columbia.edu">Contact the board</a>.</p>
+          <noscript><p class="status error">Please enable JavaScript, or email <a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a> to unsubscribe.</p></noscript>
+        </div>
+      </div>
+    </section>
+  </main>
+<footer class="footer" id="contact">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <h4>Columbia Economics Society</h4>
+      <div class="line"><a href="mailto:econboard@columbia.edu">econboard@columbia.edu</a></div>
+      <div class="line">Columbia University</div>
+      <div class="line">New York, NY 10027</div>
+    </div>
+
+    <div class="footer-right">
+      <h4>Follow Us</h4>
+      <div class="footer-links">
+        <a href="https://www.facebook.com/ColumbiaEconomicsSociety/" aria-label="Facebook">Facebook</a>
+        <a href="https://www.instagram.com/cueconsociety/?hl=en" aria-label="Instagram">Instagram</a>
+        <a href="https://www.linkedin.com/company/columbia-economics-society/" aria-label="LinkedIn">LinkedIn</a>
+        <a href="https://linktr.ee/columbiaeconsociety?utm_source=ig&utm_medium=social&utm_content=link_in_bio" aria-label="Linktree">Linktree</a>
+        <a href="/newsletter/" data-site-mailing-list>Join the mailing list</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-copy">
+    © <span id="year"></span> Columbia Economics Society. All rights reserved.
+  </div>
+</footer>
+</body>
+</html>
