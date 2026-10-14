@@ -88,7 +88,9 @@
     return monthFormatter.format(new Date(`${month}-01T12:00:00Z`));
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { todayKey, validDate, publicUrl, artworkUrl, monthFromQuery, eventMonths, normalizeEvents, splitMonth, monthLabel };
+  const core = { todayKey, validDate, publicUrl, artworkUrl, monthFromQuery, eventMonths, normalizeEvents, splitMonth, monthLabel };
+  if (typeof module !== 'undefined' && module.exports) module.exports = core;
+  if (typeof window !== 'undefined') window.CESEventsCore = core;
   if (typeof document === 'undefined') return;
 
   const picker = document.getElementById('events-month');
@@ -102,7 +104,9 @@
   let events = [];
   let loaded = false;
   let loading = false;
+  let lastLoadedAt = 0;
   let currentDay = todayKey();
+  let initialAnchorHandled = false;
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -183,6 +187,16 @@
     retry.hidden = true;
     message.textContent = empty ? 'No events posted for this month.' : '';
     record.setAttribute('aria-busy', 'false');
+    if (!initialAnchorHandled) {
+      initialAnchorHandled = true;
+      try {
+        const id = decodeURIComponent(window.location.hash.slice(1));
+        if (id.startsWith('event-')) {
+          const target = document.getElementById(id);
+          if (target && record.contains(target)) target.scrollIntoView({ block: 'start' });
+        }
+      } catch {}
+    }
   }
 
   function updateMonths(selected = picker.value || todayKey().slice(0, 7)) {
@@ -197,12 +211,14 @@
     heading.textContent = monthLabel(picker.value);
   }
 
-  async function load() {
+  async function load({ silent = false } = {}) {
     if (loading) return;
     loading = true;
     retry.hidden = true;
-    notice.hidden = false;
-    message.textContent = 'Loading events…';
+    if (!silent) {
+      notice.hidden = false;
+      message.textContent = 'Loading events…';
+    }
     record.setAttribute('aria-busy', 'true');
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -210,11 +226,20 @@
       const response = await fetch(ENDPOINT, { method: 'GET', credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer', signal: controller.signal });
       if (!response.ok) throw new Error('Events unavailable');
       const result = await response.json();
-      events = normalizeEvents(result.events);
+      const updated = normalizeEvents(result.events);
+      const changed = !loaded || JSON.stringify(updated) !== JSON.stringify(events);
+      events = updated;
       loaded = true;
-      updateMonths();
+      lastLoadedAt = Date.now();
       picker.disabled = false;
-      render();
+      if (changed) {
+        updateMonths();
+        render();
+      } else {
+        notice.hidden = record.children.length > 0;
+        message.textContent = notice.hidden ? '' : 'No events posted for this month.';
+        record.setAttribute('aria-busy', 'false');
+      }
     } catch {
       message.textContent = 'Events could not load. Try again, or visit CES on Instagram below.';
       retry.hidden = false;
@@ -228,12 +253,23 @@
 
   picker.addEventListener('change', render);
   retry.addEventListener('click', load);
+  function refreshCurrentDay() {
+    if (loaded && todayKey() !== currentDay) {
+      currentDay = todayKey();
+      updateMonths();
+      render();
+    }
+  }
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden || !loaded || todayKey() === currentDay) return;
-    currentDay = todayKey();
-    updateMonths();
-    render();
+    if (document.hidden) return;
+    refreshCurrentDay();
+    if (Date.now() - lastLoadedAt >= 60000) load({ silent: loaded });
   });
+  window.setInterval(() => {
+    if (document.hidden) return;
+    refreshCurrentDay();
+    if (Date.now() - lastLoadedAt >= 60000) load({ silent: loaded });
+  }, 60000);
   updateMonths(monthFromQuery(window.location.search) || todayKey().slice(0, 7));
   load();
 })();

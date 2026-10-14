@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./calendar/calendar.css">
+  <script src="./events/events.js" defer></script>
+  <script src="./calendar/calendar.js" defer></script>
 
 <style>
   *{ box-sizing:border-box; }
@@ -968,6 +971,19 @@
           <a class="cta-btn" href="./about/index.html">LEARN MORE</a>
           <a class="cta-btn" href="./recruitment/index.html">JOIN US</a>
         </div>
+      </div>
+    </section>
+
+    <section id="ces-calendar" class="ces-cal-section" aria-labelledby="ces-calendar-heading" data-events-endpoint="https://admin.cueconsociety.com/api/events">
+      <div class="ces-cal-wrap">
+        <div class="ces-cal-section-head">
+          <h2 id="ces-calendar-heading">Calendar</h2>
+          <a class="ces-cal-all-events" href="./events/">All events <span aria-hidden="true">↗</span></a>
+        </div>
+        <div id="ces-calendar-body" aria-busy="true"></div>
+        <p id="ces-calendar-status" role="status">Loading events…</p>
+        <button id="ces-calendar-retry" type="button" hidden>Try again</button>
+        <noscript><p><a href="./events/">View CES events</a></p></noscript>
       </div>
     </section>
 

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const output = path.join(root, '.site-build');
-const roots = ['index.html', 'about', 'admin', 'alumni', 'contact', 'events', 'faq', 'leadership', 'recruitment', 'newsletter', 'assets', 'headshots', 'horizontals', 'verticals', 'media', 'misc'];
+const roots = ['index.html', 'about', 'admin', 'alumni', 'calendar', 'contact', 'events', 'faq', 'leadership', 'recruitment', 'newsletter', 'assets', 'headshots', 'horizontals', 'verticals', 'media', 'misc'];
 const extensions = new Set(['.html', '.css', '.js', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico', '.gif', '.woff', '.woff2', '.mp4', '.pdf']);
 const fontNotices = new Set([path.join('admin', 'fonts', 'OFL.txt'), path.join('admin', 'fonts', 'SOURCE.txt')]);
 await rm(output, {recursive:true,force:true});

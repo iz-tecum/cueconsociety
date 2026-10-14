@@ -13,7 +13,7 @@
 .events-notice[hidden],.events-action[hidden]{display:none}
 .events-group{margin-top:38px}.events-group+.events-group{margin-top:52px}
 .events-group-heading{margin:0;padding-bottom:18px;border-bottom:1px solid #d9dee3;font-size:28px;line-height:1.3;font-weight:500;letter-spacing:-.02em}
-.event-entry{display:grid;grid-template-columns:78px minmax(0,1fr);column-gap:24px;row-gap:22px;padding:28px 0;border-bottom:1px solid #d9dee3}
+.event-entry{scroll-margin-top:96px;display:grid;grid-template-columns:78px minmax(0,1fr);column-gap:24px;row-gap:22px;padding:28px 0;border-bottom:1px solid #d9dee3}
 .event-entry.has-artwork{grid-template-columns:78px minmax(0,1fr) minmax(220px,340px)}
 .event-date{display:block;font-variant-numeric:tabular-nums}
 .event-day{display:block;font-size:40px;line-height:1;font-weight:500;letter-spacing:-.03em}
