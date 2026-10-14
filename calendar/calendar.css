@@ -1,18 +1,16 @@
 #ces-calendar{color:#0b1220;scroll-margin-top:100px}
 .ces-cal-section{padding:10px var(--padX,28px) 66px;background:#fff}
 .ces-cal-wrap{max-width:1180px;margin:0 auto}
-.ces-cal-section-head{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:30px}
-.ces-cal-section-head h2{margin:0;font-size:clamp(32px,3.5vw,42px);font-weight:500;line-height:1.2;letter-spacing:-.035em}
-.ces-cal-all-events{border-bottom:1px solid #aebcc7;padding-bottom:5px;white-space:nowrap;font-size:12px;font-weight:500;line-height:1.5}
-.ces-cal-all-events span{margin-left:6px}
-.ces-cal-all-events:hover{color:#245c7e;border-bottom-color:#245c7e}
-.ces-cal-all-events:focus-visible{outline:3px solid #377a9c;outline-offset:4px}
-.ces-cal-embed{padding:10px;background:#e4f4ff;border:1px solid #c4d5e0;border-radius:0}
+.ces-cal-section-head{margin-bottom:30px;text-align:center}
+.ces-cal-section-head h2{margin:0;font-family:inherit;font-size:54px;font-weight:600;letter-spacing:-.03em}
+.ces-cal-embed{padding:0;background:transparent;border:0;border-radius:24px;overflow:hidden}
 .ces-cal-frame{display:block;width:100%;height:650px;border:0;background:#fff}
+@media(max-width:980px){
+ .ces-cal-section-head h2{font-size:36px}
+}
 @media(max-width:620px){
  .ces-cal-section{padding:0 20px 36px}
  .ces-cal-section-head{margin-bottom:24px}
- .ces-cal-embed{padding:4px}
  .ces-cal-frame{height:600px}
 }
-@media(max-width:360px){.ces-cal-section{padding-left:12px;padding-right:12px}.ces-cal-section-head{gap:16px}.ces-cal-all-events{font-size:11px}}
+@media(max-width:360px){.ces-cal-section{padding-left:12px;padding-right:12px}}
