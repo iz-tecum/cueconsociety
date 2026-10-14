@@ -2,7 +2,7 @@
 
 The public site remains static HTML with its existing page layouts and styles.
 
-Edit `shared/public-content.json` for the public contact address, mailing-list link, recruitment contacts, or alumni names. Run `npm run sync:public` and commit the generated HTML alongside the content file. This updates all nine public pages without adding browser dependencies or changing the design.
+Edit `shared/public-content.json` for the public contact address, mailing-list link, recruitment contacts, or alumni names. Run `npm run sync:public` and commit the generated HTML alongside the content file. This updates all ten public pages and their static navigation. Shared menu styles and behavior live in `assets/site-navigation.css` and `assets/site-navigation.js`.
 
 Manage public events in the admin website's Events tab. The Events page reads `https://admin.cueconsociety.com/api/events` and refreshes while open and when returning to the page. Publishing adds an event to the public feed; draft, archive, and deletion remove it. Dates follow New York time; event time text is displayed as entered. Run `node --test tests/events.test.js` for date and visibility checks.
 

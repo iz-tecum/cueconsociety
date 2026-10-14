@@ -12,6 +12,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/newsletter/newsletter.css">
   <script src="/newsletter/newsletter.js" defer></script>
+  <link rel="stylesheet" href="/assets/site-navigation.css?v=1">
+  <script src="/assets/site-navigation.js?v=1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -20,28 +22,20 @@
     <a class="brand brand-float" href="../index.html" aria-label="Home">
       <img src="../media/ceslogo.png" alt="Columbia Economics Society logo">
     </a>
-
-
-    <button class="nav-toggle"
-            type="button"
-            aria-label="Open menu"
-            aria-expanded="false"
-            aria-controls="mobileNav">
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
-
     <nav class="nav" id="mobileNav" aria-label="Primary">
       <div class="nav-links">
         <div class="drop" id="aboutDrop">
-          <button type="button" id="aboutBtn" aria-haspopup="true" aria-expanded="false">
+          <button type="button" id="aboutBtn" aria-expanded="false" aria-controls="aboutMenu">
             ABOUT US <span class="caret" aria-hidden="true"></span>
           </button>
-          <div class="menu" role="menu" aria-label="About menu">
-            <a href="../about/index.html" role="menuitem">ABOUT</a>
-            <a href="../leadership/index.html" role="menuitem">LEADERSHIP</a>
+          <div class="menu" id="aboutMenu" aria-label="About menu">
+            <a href="../about/index.html">ABOUT</a>
+            <a href="../leadership/index.html">LEADERSHIP</a>
           </div>
         </div>
-
         <a href="../events/index.html">EVENTS</a>
         <a href="../alumni/index.html">ALUMNI</a>
         <a href="../faq/index.html">FAQ</a>

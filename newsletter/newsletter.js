@@ -2,53 +2,8 @@
   'use strict';
 
   const byId = id => document.getElementById(id);
-  const topbar = byId('topbar');
-  const hero = byId('hero');
-  const toggle = document.querySelector('.nav-toggle');
-  const nav = byId('mobileNav');
-  const about = byId('aboutDrop');
-  const aboutButton = byId('aboutBtn');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  function setNavState() {
-    topbar.classList.toggle('is-solid', hero.getBoundingClientRect().bottom <= 71);
-  }
-
-  function setMenuOpen(open) {
-    topbar.classList.toggle('nav-open', open);
-    toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-    nav.inert = window.innerWidth <= 920 && !open;
-  }
-
-  toggle.addEventListener('click', () => setMenuOpen(!topbar.classList.contains('nav-open')));
-  nav.addEventListener('click', event => {
-    if (event.target.closest('a')) setMenuOpen(false);
-  });
-  document.addEventListener('keydown', event => {
-    if (event.key === 'Escape') {
-      if (topbar.classList.contains('nav-open')) {
-        setMenuOpen(false);
-        toggle.focus();
-      }
-      aboutButton.setAttribute('aria-expanded', 'false');
-    }
-  });
-  about.addEventListener('focusin', () => aboutButton.setAttribute('aria-expanded', 'true'));
-  about.addEventListener('focusout', event => {
-    if (!about.contains(event.relatedTarget)) aboutButton.setAttribute('aria-expanded', 'false');
-  });
-  about.addEventListener('mouseenter', () => aboutButton.setAttribute('aria-expanded', 'true'));
-  about.addEventListener('mouseleave', () => aboutButton.setAttribute('aria-expanded', String(about.contains(document.activeElement))));
-  aboutButton.addEventListener('click', () => about.querySelector('a').focus());
-  window.addEventListener('scroll', setNavState, { passive: true });
-  window.addEventListener('resize', () => {
-    setNavState();
-    setMenuOpen(window.innerWidth <= 920 && topbar.classList.contains('nav-open'));
-  });
-  setNavState();
-  setMenuOpen(false);
-  byId('year').textContent = String(new Date().getFullYear());
 
   const slides = ['../horizontals/im1.jpg', '../horizontals/im2.jpg', '../horizontals/im3.jpg'];
   const backgrounds = [byId('bgA'), byId('bgB')];

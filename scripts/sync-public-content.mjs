@@ -3,9 +3,41 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const content = JSON.parse(await readFile(path.join(root, 'shared/public-content.json'), 'utf8'));
-const pages = ['index.html', ...['about', 'events', 'leadership', 'alumni', 'faq', 'contact', 'recruitment', 'newsletter'].map(name => `${name}/index.html`)];
+const pages = ['index.html', ...['about', 'events', 'leadership', 'alumni', 'faq', 'contact', 'recruitment', 'newsletter', 'unsubscribe'].map(name => `${name}/index.html`)];
 const escape = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const email = escape(content.email), label = escape(content.mailingList.label), href = escape(content.mailingList.href);
+function navigation(page) {
+  const prefix = page === 'index.html' ? './' : '../';
+  const link = (name, label, className = '') => `<a${className ? ` class="${className}"` : ''} href="${prefix}${name}/index.html"${page === `${name}/index.html` ? ' aria-current="page"' : ''}>${label}</a>`;
+  return `<header class="topbar" id="topbar">
+  <div class="topbar-inner">
+    <a class="brand brand-float" href="${prefix}index.html" aria-label="Home"${page === 'index.html' ? ' aria-current="page"' : ''}>
+      <img src="${prefix}media/ceslogo.png" alt="Columbia Economics Society logo">
+    </a>
+    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav" id="mobileNav" aria-label="Primary">
+      <div class="nav-links">
+        <div class="drop" id="aboutDrop">
+          <button type="button" id="aboutBtn" aria-expanded="false" aria-controls="aboutMenu">
+            ABOUT US <span class="caret" aria-hidden="true"></span>
+          </button>
+          <div class="menu" id="aboutMenu" aria-label="About menu">
+            ${link('about', 'ABOUT')}
+            ${link('leadership', 'LEADERSHIP')}
+          </div>
+        </div>
+        ${link('events', 'EVENTS')}
+        ${link('alumni', 'ALUMNI')}
+        ${link('faq', 'FAQ')}
+        ${link('contact', 'CONTACT')}
+        ${link('recruitment', 'RECRUITMENT', 'recruit')}
+      </div>
+    </nav>
+  </div>
+</header>`;
+}
 function replaceOnce(html, expression, replacement, name) {
   const matches = [...html.matchAll(new RegExp(expression.source, 'g' + (expression.flags.includes('s') ? 's' : '')))];
   if (matches.length !== 1) throw Error(`${name}: expected one matching block, found ${matches.length}`);
@@ -15,6 +47,7 @@ let changed = 0;
 for (const page of pages) {
   const file = path.join(root, page), original = await readFile(file, 'utf8');
   let html = original.replace('placeholder="user@gmail.com"', 'placeholder="Your email"');
+  html = replaceOnce(html, /<header class="topbar"[\s\S]*?<\/header>/, navigation(page), page + ' navigation');
   html = html.replace(/mailto:[^"\s<]+/g, `mailto:${email}`);
   html = html.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, email);
   html = replaceOnce(html, /(<div class="footer-links">)([\s\S]*?)(<\/div>)/, (whole, start, links, end) => {
