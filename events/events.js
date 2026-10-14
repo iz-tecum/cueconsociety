@@ -119,7 +119,7 @@
     return anchor;
   }
 
-  function eventArticle(event, today) {
+  function eventArticle(event) {
     const article = element('article', `event-entry${event.imageUrl ? ' has-artwork' : ''}`);
     article.id = `event-${event.id}`;
     const date = element('time', 'event-date');
@@ -127,9 +127,7 @@
     date.setAttribute('aria-label', new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', dateStyle: 'full' }).format(new Date(`${event.date}T12:00:00Z`)));
     date.append(element('span', 'event-day', String(Number(event.date.slice(8)))), element('span', 'event-weekday', weekdayFormatter.format(new Date(`${event.date}T12:00:00Z`))));
     const copy = element('div', 'event-copy');
-    const category = event.category === 'opportunity' ? 'Shared opportunity' : 'CES event';
-    const ongoing = event.endDate && event.date < today && event.endDate >= today;
-    copy.append(element('p', 'event-kind', category + (ongoing ? ' · Ongoing' : event.date === today ? ' · Today' : '')), element('h3', 'event-title', event.title));
+    copy.append(element('h3', 'event-title', event.title));
     if (event.time || event.location || event.endDate && event.endDate !== event.date) {
       const details = element('p', 'event-details');
       if (event.endDate && event.endDate !== event.date) {
@@ -142,16 +140,14 @@
       copy.append(details);
     }
     if (event.summary) copy.append(element('p', 'event-summary', event.summary));
-    if (event.actionUrl || event.instagramUrl) {
+    if (event.actionUrl) {
       const links = element('div', 'event-links');
-      if (event.actionUrl) links.append(link(event.actionLabel, event.actionUrl));
-      if (event.instagramUrl && event.instagramUrl !== event.actionUrl) links.append(link('Instagram ↗', event.instagramUrl));
+      links.append(link(event.actionLabel, event.actionUrl));
       copy.append(links);
     }
     article.append(date, copy);
     if (event.imageUrl) {
-      const media = link('', event.imageUrl, 'event-media');
-      media.setAttribute('aria-label', `Open ${event.title} artwork`);
+      const media = element('figure', 'event-media');
       const image = element('img', 'event-poster');
       image.src = event.imageUrl;
       image.alt = event.imageAlt || `${event.title} event artwork`;
@@ -164,12 +160,12 @@
     return article;
   }
 
-  function renderGroup(label, entries, today) {
+  function renderGroup(label, entries) {
     if (!entries.length) return;
     const section = element('section', 'events-group');
     const groupHeading = element('h3', 'events-group-heading', label);
     section.append(groupHeading);
-    entries.forEach(event => section.append(eventArticle(event, today)));
+    entries.forEach(event => section.append(eventArticle(event)));
     record.append(section);
   }
 
@@ -180,8 +176,8 @@
     const today = todayKey();
     const groups = splitMonth(events, month, today);
     record.replaceChildren();
-    renderGroup('Upcoming', groups.upcoming, today);
-    renderGroup('Past', [...groups.past].reverse(), today);
+    renderGroup('Upcoming', groups.upcoming);
+    renderGroup('Past', [...groups.past].reverse());
     const empty = !groups.upcoming.length && !groups.past.length;
     notice.hidden = !empty;
     retry.hidden = true;
