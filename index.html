@@ -9,8 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./calendar/calendar.css">
-  <script src="./events/events.js" defer></script>
-  <script src="./calendar/calendar.js" defer></script>
+  <script src="./calendar/embed.js" defer></script>
 
 <style>
   *{ box-sizing:border-box; }
@@ -974,16 +973,15 @@
       </div>
     </section>
 
-    <section id="ces-calendar" class="ces-cal-section" aria-labelledby="ces-calendar-heading" data-events-endpoint="https://admin.cueconsociety.com/api/events">
+    <section id="ces-calendar" class="ces-cal-section" aria-labelledby="ces-calendar-heading">
       <div class="ces-cal-wrap">
         <div class="ces-cal-section-head">
           <h2 id="ces-calendar-heading">Calendar</h2>
           <a class="ces-cal-all-events" href="./events/">All events <span aria-hidden="true">↗</span></a>
         </div>
-        <div id="ces-calendar-body" aria-busy="true"></div>
-        <p id="ces-calendar-status" role="status">Loading events…</p>
-        <button id="ces-calendar-retry" type="button" hidden>Try again</button>
-        <noscript><p><a href="./events/">View CES events</a></p></noscript>
+        <div class="ces-cal-embed">
+          <iframe id="ces-google-calendar" class="ces-cal-frame" title="Columbia Economics Society event calendar" src="https://calendar.google.com/calendar/embed?src=ubsjsp8fgge92b9tggocgq47q3f132te%40import.calendar.google.com&amp;ctz=America%2FNew_York&amp;mode=MONTH&amp;showTitle=0&amp;showCalendars=0&amp;showPrint=0&amp;showTz=0&amp;bgcolor=%23ffffff&amp;color=%231e4a78" width="100%" height="650" loading="lazy" frameborder="0" scrolling="no"></iframe>
+        </div>
       </div>
     </section>
 
