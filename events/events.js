@@ -180,8 +180,8 @@
     const today = todayKey();
     const groups = splitMonth(events, month, today);
     record.replaceChildren();
-    renderGroup(groups.upcoming.some(event => event.date < today) ? 'Upcoming and ongoing' : 'Upcoming', groups.upcoming, today);
-    renderGroup(month === today.slice(0, 7) ? 'Earlier this month' : 'Past events', groups.past, today);
+    renderGroup('Upcoming', groups.upcoming, today);
+    renderGroup('Past', [...groups.past].reverse(), today);
     const empty = !groups.upcoming.length && !groups.past.length;
     notice.hidden = !empty;
     retry.hidden = true;
